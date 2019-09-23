@@ -194,6 +194,8 @@ function onKeyDown(e){
         case 83: //s - Angle O1
             rotateBaseNeg = true;
             break;
+        case 83: //s - Angle O1
+            break;
         case 81: //q - Angle O2
             rotateArmPos = true;
             break;
