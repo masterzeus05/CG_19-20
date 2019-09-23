@@ -1,18 +1,20 @@
 var scene, renderer;
-var topCamera, LateralCamera, FrontCamera, camera;
+var topCamera, lateralCamera, frontCamera, camera;
 var currCamera;
 var viewSize = 1/4;
 
-var baseGroup, cube;
-
+var robot;
+var armBase;
 var robotColor = 0xff0000;
 
-var controls; //WRONG
+var width = window.innerWidth;
+var height = window.innerHeight;
+
+var left = false, right = false, up = false, down = false;
+var rotateBasePos = false, rotateBaseNeg = false;
 
 function createTopCamera(){
     'use strict';
-    var width = window.innerWidth;
-    var height = window.innerHeight;
     topCamera = new THREE.OrthographicCamera( width / - 2 * viewSize, width / 2 * viewSize, height / 2 * viewSize, height / - 2 * viewSize, 1, 100 );
 
     topCamera.position.x = 0;
@@ -20,6 +22,27 @@ function createTopCamera(){
     topCamera.position.z = 0;
     topCamera.lookAt(0,0,0);
 }
+
+function createLateralCamera(){
+    'use strict';
+    lateralCamera = new THREE.OrthographicCamera( width / - 2 * viewSize, width / 2 * viewSize, height / 2 * viewSize, height / - 2 * viewSize, 1, 100 );
+
+    lateralCamera.position.x = 50;
+    lateralCamera.position.y = 30;
+    lateralCamera.position.z = 0;
+    lateralCamera.lookAt(0,30,0);
+}
+
+function createFrontalCamera(){
+    'use strict';
+    frontCamera = new THREE.OrthographicCamera( width / - 2 * viewSize, width / 2 * viewSize, height / 2 * viewSize, height / - 2 * viewSize, 1, 100 );
+
+    frontCamera.position.x = 0;
+    frontCamera.position.y = 30;
+    frontCamera.position.z = 50;
+    frontCamera.lookAt(0,30,0);
+}
+
 
 function createCamera(){ //WRONG
     'use strict';
@@ -38,55 +61,32 @@ function createCamera(){ //WRONG
 function createRobotBasis(x,y,z){ //Completed
     'use strict';
 
-    baseGroup = new THREE.Object3D();
+    robot = new THREE.Object3D();
 
-    baseGroup.add(new THREE.Mesh(new THREE.BoxGeometry(30,10,50, 16,16,16), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
-    baseGroup.position.set(x,y,z);
+    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,5,50, 16,16,16), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+    robot.position.set(x,y,z);
 
+    var positions = [[-10,20],[10,-20],[-10,-20],[10,20]];
     for (let i=0; i<4; i+=1){
         var geometry = new THREE.SphereGeometry( 5, 16, 16 );
-        var material = new THREE.MeshBasicMaterial( {color: robotColor, wireframe:true} );
+        var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
         var sphere = new THREE.Mesh( geometry, material );
 
-        var positions = [[-10,20],[10,-20],[-10,-20],[10,20]]
-        sphere.position.set( positions[i][0], -10, positions[i][1]);
-        baseGroup.add(sphere);
+        sphere.position.set( positions[i][0], -8, positions[i][1]);
+        robot.add(sphere);
     }
 
     var geometry = new THREE.SphereGeometry( 10, 16, 16, 0, 2*Math.PI, 0, 0.5*Math.PI );
-    var material = new THREE.MeshBasicMaterial( {color: robotColor, wireframe:true} );
-    var sphere = new THREE.Mesh( geometry, material );
-    sphere.position.set( 0, 5, 0);
-    baseGroup.add(sphere);
+    var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+    armBase = new THREE.Mesh( geometry, material );
+    armBase.position.set( 0, 3, 0);
+    robot.add(armBase);
 
-    scene.add(baseGroup);
+    scene.add(robot);
 }
 
 function createRobotArm(objBasis, x,y,z){ //TODO
 
-}
-
-function createCube(x,y,z, w, h, d){ //WRONG, for testing
-    'use strict';
-    cube = new THREE.Object3D();
-
-    var material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe: true});
-    var geometry = new THREE.BoxGeometry(w,h,d);
-    var mesh = new THREE.Mesh(geometry, material);
-
-    cube.add(mesh);
-    cube.position.set(x,y,z);
-
-    var newcube = new THREE.Object3D()
-    material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe: true});
-    geometry = new THREE.BoxGeometry(w/2,h/2,d/2);
-    var mesh = new THREE.Mesh(geometry, material);
-    
-    newcube.add(mesh)
-    newcube.position.set(x,y,z);
-    cube.add(newcube);
-
-    scene.add(cube);
 }
 
 function createScene(){
@@ -97,13 +97,12 @@ function createScene(){
 
     //Plane for help
     var geometry = new THREE.PlaneGeometry( 100, 100, 32 );
-    var material = new THREE.MeshBasicMaterial( {color: 0x0800a6, side: THREE.DoubleSide} ); 
+    var material = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide} ); 
     var plane = new THREE.Mesh( geometry, material );
     plane.rotateX( - Math.PI / 2); 
     scene.add( plane );
 
     //Creation of Models
-    createCube(5,5,50,10,10,10); //WRONG, just for testing
     createRobotBasis(0,15,0);
 }
 
@@ -123,11 +122,19 @@ function onResize(){
         topCamera.updateProjectionMatrix();
         renderer.setSize(width, height);
 
-        //LateralCamera.aspect = renderer.getSize().width / renderer.getSize().height;
-        //LateralCamera.updateProjectionMatrix();
+        lateralCamera.left = width / -2 * viewSize;
+        lateralCamera.right = -topCamera.left;
+        lateralCamera.top = height / 2 * viewSize;
+        lateralCamera.bottom = -topCamera.top;
+        lateralCamera.updateProjectionMatrix();
+        renderer.setSize(width, height);
 
-        //FrontCamera.aspect = renderer.getSize().width / renderer.getSize().height;
-        //FrontCamera.updateProjectionMatrix();
+        frontCamera.left = width / -2 * viewSize;
+        frontCamera.right = -topCamera.left;
+        frontCamera.top = height / 2 * viewSize;
+        frontCamera.bottom = -topCamera.top;
+        frontCamera.updateProjectionMatrix();
+        renderer.setSize(width, height);
     }
 
 }
@@ -145,8 +152,12 @@ function onKeyDown(e){
             currCamera = topCamera;
             break;
         case 50: //2 - Lateral Camera
+            console.log("LateralCamera activates!");
+            currCamera = lateralCamera;
             break;
         case 51: //3 - Front Camera
+            console.log("FrontalCamera activates!");
+            currCamera = frontCamera;
             break;
         case 52: //4 - Wireframe toggle
             scene.traverse(function (node){
@@ -156,6 +167,10 @@ function onKeyDown(e){
             });
             break;
         case 65: //a - Angle O1
+            rotateBasePos = true;
+            break;
+        case 83: //s - Angle O1
+            rotateBaseNeg = true;
             break;
         case 83: //s - Angle O1
             break;
@@ -164,12 +179,16 @@ function onKeyDown(e){
         case 87: //w - Angle O2
             break;
         case 37: // < - Move left
+            left = true;
             break;
         case 39: // > - Move right
+            right = true;
             break;
         case 38: // /\ - Move up
+            up = true;
             break;
         case 40: // \/ - Move down
+            down = true;
             break;
         default:
             console.log(e.keyCode);
@@ -177,17 +196,49 @@ function onKeyDown(e){
     }
 }
 
-var i=0
+function onKeyUp(e){
+    'use strict';
+
+    switch(e.keyCode){
+        case 65: //a - Angle O1
+            rotateBasePos = false;
+            break;
+        case 83: //s - Angle O1
+            rotateBaseNeg = false;
+            break;
+        case 37: // < - Move left
+            left = false;
+            break;
+        case 39: // > - Move right
+            right = false;
+            break;
+        case 38: // /\ - Move up
+            up = false;
+            break;
+        case 40: // \/ - Move down
+            down = false;
+            break;
+        default:
+            console.log(e.keyCode);
+            break;
+    }
+}
+
+function moveRobot() {
+    if (left) robot.position.x -= 1;
+    if (right) robot.position.x += 1;
+    if (up) robot.position.z -= 1;
+    if (down) robot.position.z += 1;
+    if (rotateBasePos) armBase.rotation.y += 0.1;
+    if (rotateBaseNeg) armBase.rotation.y -= 0.1;
+}
+
 function animate(){
     'use strict';
 
-    controls.update();
+    // controls.update();
     render();
-    cube.position.x = Math.cos(i/20)*30 //WRONG
-
-    baseGroup.position.x = Math.cos(i/40)*35
-    i+=1;
-    if (i>40*2*Math.PI) i=0;
+    moveRobot();
 
     requestAnimationFrame(animate);
 }
@@ -201,20 +252,23 @@ function init(){
     'use strict';
 
     renderer = new THREE.WebGLRenderer({antialias: true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
 
     document.body.appendChild(renderer.domElement);
 
     createScene();
     createCamera(); //WRONG
     createTopCamera();
+    createLateralCamera();
+    createFrontalCamera();
 
     currCamera = camera;
     render();
 
-    controls = new THREE.OrbitControls( currCamera, renderer.domElement );
-    controls.update();
+    // controls = new THREE.OrbitControls( currCamera, renderer.domElement );
+    // controls.update();
 
     window.addEventListener("resize", onResize);
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
 }
