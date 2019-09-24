@@ -4,7 +4,7 @@ var currCamera;
 var viewSize = 1/4;
 
 var robot;
-var armBase;
+var arm, armBase;
 var robotColor = 0xff0000;
 
 var width = window.innerWidth;
@@ -47,7 +47,7 @@ function createFrontalCamera(){
 function createCamera(){ //WRONG
     'use strict';
 
-    camera = new THREE.PerspectiveCamera(70,
+    camera = new THREE.PerspectiveCamera(80,
         window.innerWidth / window.innerHeight,
         1,
         1000);
@@ -86,7 +86,52 @@ function createRobotBasis(x,y,z){ //Completed
 }
 
 function createRobotArm(objBasis, x,y,z){ //TODO
+    'use strict';
 
+    arm = new THREE.Object3D();
+
+    // forearm
+    var geometry = new THREE.BoxGeometry( 3, 23, 3, 4,4,4);
+    var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+    var forearm = new THREE.Mesh( geometry, material );
+    forearm.position.set(0, 20, 0);
+    arm.add(forearm);
+    
+    // arm
+    var geometry = new THREE.BoxGeometry( 3, 3, 19, 4,4,4);
+    var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+    var _arm = new THREE.Mesh( geometry, material );
+    _arm.position.set(0, 30, -11);
+    arm.add(_arm);
+
+    // hand
+    var geometry = new THREE.BoxGeometry( 6, 6, 1, 4,4,4);
+    var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+    var hand = new THREE.Mesh( geometry, material );
+    hand.position.set(0, 30, -25);
+    arm.add(hand);
+
+    // fingers
+    var finger_positions = [28,32];
+    for (let i=0; i<2; i+=1){
+        var geometry = new THREE.BoxGeometry( 1, 1, 5, 4,4,4);
+        var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+        var finger = new THREE.Mesh( geometry, material );
+        finger.position.set( 0, finger_positions[i], -27);
+        arm.add(finger);
+    }
+
+    // articulation + hand support
+    var positions = [0,-22];
+    for (let i=0; i<2; i+=1){
+        var geometry = new THREE.SphereGeometry( 3, 16, 16 );
+        var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+        var support = new THREE.Mesh( geometry, material );
+        support.position.set(0, 30 , positions[i]);
+        arm.add(support);
+    }
+    
+    objBasis.add(arm);
 }
 
 function createScene(){
@@ -104,6 +149,7 @@ function createScene(){
 
     //Creation of Models
     createRobotBasis(0,15,0);
+    createRobotArm(armBase, 0, 0, 0);
 }
 
 function onResize(){
