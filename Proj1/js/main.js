@@ -1,19 +1,18 @@
 var scene, renderer;
 var topCamera, lateralCamera, frontCamera, camera;
-var currCamera;
+var currCamera, controls;
 var viewSize = 1/4;
 var controls;
 
 var robot;
-var armBase;
+var arm, armBase;
 var robotColor = 0xff0000;
 
 var width = window.innerWidth;
 var height = window.innerHeight;
 
 var left = false, right = false, up = false, down = false;
-var rotateBasePos = false, rotateBaseNeg = false;
-var rotateArmPos = false, rotateArmNeg = false;
+var rotateBasePos = false, rotateBaseNeg = false, rotateArmPos = false, rotateArmNeg = false;
 
 function createTopCamera(){
     'use strict';
@@ -49,7 +48,7 @@ function createFrontalCamera(){
 function createCamera(){ //WRONG
     'use strict';
 
-    camera = new THREE.PerspectiveCamera(70,
+    camera = new THREE.PerspectiveCamera(80,
         window.innerWidth / window.innerHeight,
         1,
         1000);
@@ -65,7 +64,7 @@ function createRobotBasis(x,y,z){ //Completed
 
     robot = new THREE.Object3D();
 
-    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,5,50, 16,16,16), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,5,50, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
     robot.position.set(x,y,z);
 
     var positions = [[-10,20],[10,-20],[-10,-20],[10,20]];
@@ -87,27 +86,53 @@ function createRobotBasis(x,y,z){ //Completed
     scene.add(robot);
 }
 
-function createRobotArm(){ //TODO
-    var geometry = new THREE.BoxGeometry(5, 15, 5, 4, 4, 4);
-    var material = new THREE.MeshBasicMaterial({color: 0x797979, wireframe:true})
-    var arm = new THREE.Mesh( geometry, material );
+function createRobotArm(objBasis, x,y,z){ //TODO
+    'use strict';
 
-    arm.position.set(0, 17, 0);
-    armBase.add(arm);
+    arm = new THREE.Object3D();
 
-    geometry = new THREE.SphereGeometry( 5, 16, 16 );
-    material = new THREE.MeshBasicMaterial({color: 0x797979, wireframe:true})
-    sphere = new THREE.Mesh( geometry, material );
+    // forearm
+    var geometry = new THREE.BoxGeometry( 3, 23, 3, 4,4,4);
+    var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+    var forearm = new THREE.Mesh( geometry, material );
+    forearm.position.set(0, 20, 0);
+    arm.add(forearm);
+    
+    // arm
+    var geometry = new THREE.BoxGeometry( 3, 3, 19, 4,4,4);
+    var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+    var _arm = new THREE.Mesh( geometry, material );
+    _arm.position.set(0, 30, -11);
+    arm.add(_arm);
 
-    sphere.position.set(0, 10, 0);
-    arm.add(sphere);
+    // hand
+    var geometry = new THREE.BoxGeometry( 6, 6, 1, 4,4,4);
+    var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+    var hand = new THREE.Mesh( geometry, material );
+    hand.position.set(0, 30, -25);
+    arm.add(hand);
 
-    geometry = new THREE.BoxGeometry(5, 5, 25, 4, 4, 4);
-    material = new THREE.MeshBasicMaterial({color: 0x797979, wireframe:true})
-    var arm2 = new THREE.Mesh( geometry, material );
+    // fingers
+    var finger_positions = [28,32];
+    for (let i=0; i<2; i+=1){
+        var geometry = new THREE.BoxGeometry( 1, 1, 5, 4,4,4);
+        var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+        var finger = new THREE.Mesh( geometry, material );
+        finger.position.set( 0, finger_positions[i], -27);
+        arm.add(finger);
+    }
 
-    arm2.position.set(0, 10, -10);
-    arm.add(arm2);
+    // articulation + hand support
+    var positions = [0,-22];
+    for (let i=0; i<2; i+=1){
+        var geometry = new THREE.SphereGeometry( 3, 16, 16 );
+        var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+        var support = new THREE.Mesh( geometry, material );
+        support.position.set(0, 30 , positions[i]);
+        arm.add(support);
+    }
+    
+    objBasis.add(arm);
 }
 
 function createScene(){
@@ -125,7 +150,7 @@ function createScene(){
 
     //Creation of Models
     createRobotBasis(0,15,0);
-    createRobotArm();
+    createRobotArm(armBase, 0, 0, 0);
 }
 
 function onResize(){
@@ -194,8 +219,6 @@ function onKeyDown(e){
         case 83: //s - Angle O1
             rotateBaseNeg = true;
             break;
-        case 83: //s - Angle O1
-            break;
         case 81: //q - Angle O2
             rotateArmPos = true;
             break;
@@ -249,7 +272,7 @@ function onKeyUp(e){
             down = false;
             break;
         default:
-            console.log(e.keyCode);
+            //console.log(e.keyCode);
             break;
     }
 }
@@ -261,8 +284,8 @@ function moveRobot() {
     if (down) robot.position.z += 1;
     if (rotateBasePos) armBase.rotateY(0.1);
     if (rotateBaseNeg) armBase.rotateY(-0.1);
-    if (rotateArmPos && armBase.rotation.x <= Math.PI / 3) armBase.rotateX(0.1);
-    if (rotateArmNeg && armBase.rotation.x >= -(Math.PI / 3)) armBase.rotateX(-0.1);
+    if (rotateArmPos && arm.rotation.x <= Math.PI*4/9) arm.rotateX(0.1);
+    if (rotateArmNeg  && arm.rotation.x >= -Math.PI/3) arm.rotateX(-0.1);
 }
 
 function animate(){
