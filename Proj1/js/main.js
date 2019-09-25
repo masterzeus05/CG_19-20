@@ -76,7 +76,7 @@ function createRobotBasis(x,y,z){ //Completed
         robot.add(sphere);
     }
 
-    var geometry = new THREE.SphereGeometry( 10, 16, 16, 0, 2*Math.PI, 0, 0.5*Math.PI );
+    var geometry = new THREE.SphereGeometry( 6, 16, 16, 0, 2*Math.PI, 0, 0.5*Math.PI );
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
     armBase = new THREE.Mesh( geometry, material );
     armBase.position.set( 0, 3, 0);
@@ -94,7 +94,7 @@ function createRobotArm(objBasis, x,y,z){ //TODO
     var geometry = new THREE.BoxGeometry( 3, 23, 3, 4,4,4);
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
     var forearm = new THREE.Mesh( geometry, material );
-    forearm.position.set(0, 20, 0);
+    forearm.position.set(0, 17, 0);
     arm.add(forearm);
     
     // arm
@@ -142,7 +142,7 @@ function createTarget(x, y, z) {
     
     target.add(new THREE.Mesh(new THREE.BoxGeometry(10,40,5, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
     // torus
-    var geometry = new THREE.TorusGeometry(3, 1, 16, 50);
+    var geometry = new THREE.TorusGeometry(4, 1, 16, 50);
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
     var torus = new THREE.Mesh( geometry, material );
     torus.position.set(0, 24, 0);
