@@ -1,9 +1,9 @@
 var scene, renderer;
 var topCamera, lateralCamera, frontCamera, camera;
-var currCamera;
+var currCamera, controls;
 var viewSize = 1/4;
 
-var robot;
+var robot, target;
 var arm, armBase;
 var robotColor = 0xff0000;
 
@@ -11,7 +11,7 @@ var width = window.innerWidth;
 var height = window.innerHeight;
 
 var left = false, right = false, up = false, down = false;
-var rotateBasePos = false, rotateBaseNeg = false;
+var rotateBasePos = false, rotateBaseNeg = false, rotateArmPos = false, rotateArmNeg = false;
 
 function createTopCamera(){
     'use strict';
@@ -63,7 +63,7 @@ function createRobotBasis(x,y,z){ //Completed
 
     robot = new THREE.Object3D();
 
-    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,5,50, 16,16,16), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,5,50, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
     robot.position.set(x,y,z);
 
     var positions = [[-10,20],[10,-20],[-10,-20],[10,20]];
@@ -134,6 +134,23 @@ function createRobotArm(objBasis, x,y,z){ //TODO
     objBasis.add(arm);
 }
 
+function createTarget(x, y, z) {
+	'use strict';
+
+	target = new THREE.Object3D();
+    target.position.set(x,y,z);
+    
+    target.add(new THREE.Mesh(new THREE.BoxGeometry(10,40,5, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+    // torus
+    var geometry = new THREE.TorusGeometry(3, 1, 16, 50);
+    var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+    var torus = new THREE.Mesh( geometry, material );
+    torus.position.set(0, 24, 0);
+    target.add(torus);
+
+    scene.add(target);
+}
+
 function createScene(){
     'use strict';
 
@@ -150,6 +167,7 @@ function createScene(){
     //Creation of Models
     createRobotBasis(0,15,0);
     createRobotArm(armBase, 0, 0, 0);
+    createTarget(0, 25, -40);
 }
 
 function onResize(){
@@ -218,11 +236,11 @@ function onKeyDown(e){
         case 83: //s - Angle O1
             rotateBaseNeg = true;
             break;
-        case 83: //s - Angle O1
-            break;
         case 81: //q - Angle O2
+            rotateArmPos = true;
             break;
         case 87: //w - Angle O2
+            rotateArmNeg = true;
             break;
         case 37: // < - Move left
             left = true;
@@ -252,6 +270,12 @@ function onKeyUp(e){
         case 83: //s - Angle O1
             rotateBaseNeg = false;
             break;
+        case 81: //q - Angle O2
+            rotateArmPos = false;
+            break;
+        case 87: //w - Angle O2
+            rotateArmNeg = false;
+            break;
         case 37: // < - Move left
             left = false;
             break;
@@ -265,7 +289,7 @@ function onKeyUp(e){
             down = false;
             break;
         default:
-            console.log(e.keyCode);
+            //console.log(e.keyCode);
             break;
     }
 }
@@ -275,14 +299,16 @@ function moveRobot() {
     if (right) robot.position.x += 1;
     if (up) robot.position.z -= 1;
     if (down) robot.position.z += 1;
-    if (rotateBasePos) armBase.rotation.y += 0.1;
-    if (rotateBaseNeg) armBase.rotation.y -= 0.1;
+    if (rotateBasePos) armBase.rotateY(0.1);
+    if (rotateBaseNeg) armBase.rotateY(-0.1);
+    if (rotateArmPos && arm.rotation.x <= Math.PI*4/9) arm.rotateX(0.1);
+    if (rotateArmNeg  && arm.rotation.x >= -Math.PI/3) arm.rotateX(-0.1);
 }
 
 function animate(){
     'use strict';
 
-    // controls.update();
+    controls.update();
     render();
     moveRobot();
 
@@ -311,8 +337,8 @@ function init(){
     currCamera = camera;
     render();
 
-    // controls = new THREE.OrbitControls( currCamera, renderer.domElement );
-    // controls.update();
+    controls = new THREE.OrbitControls( currCamera, renderer.domElement );
+    controls.update();
 
     window.addEventListener("resize", onResize);
     window.addEventListener("keydown", onKeyDown);
