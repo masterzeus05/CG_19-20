@@ -64,7 +64,7 @@ function createRobotBasis(x,y,z){ //Completed
 
     robot = new THREE.Object3D();
 
-    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,5,50, 1,1,1), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,6,50, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
     robot.position.set(x,y,z);
 
     var positions = [[-10,20],[10,-20],[-10,-20],[10,20]];
@@ -142,7 +142,8 @@ function createTarget(x, y, z) {
 	target = new THREE.Object3D();
     target.position.set(x,y,z);
     
-    target.add(new THREE.Mesh(new THREE.BoxGeometry(10,40,5, 1,1,1), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+    target.add(new THREE.Mesh(new THREE.CylinderGeometry( 5, 5, 38, 32 ), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+  
     // torus
     var geometry = new THREE.TorusGeometry(4, 1, 16, 50);
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
@@ -163,13 +164,14 @@ function createScene(){
     var geometry = new THREE.PlaneGeometry( 100, 100, 32 );
     var material = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide} ); 
     var plane = new THREE.Mesh( geometry, material );
-    plane.rotateX( - Math.PI / 2); 
+    plane.rotateX( - Math.PI / 2);
+    plane.position.set(0, 2, 0);
     scene.add( plane );
 
     //Creation of Models
     createRobotBasis(0,15,0);
     createRobotArm(armBase, 0, 0, 0);
-    createTarget(0, 25, -40);
+    createTarget(0, 21, -40);
 }
 
 function onResize(){
