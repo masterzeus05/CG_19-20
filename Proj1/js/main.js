@@ -63,7 +63,7 @@ function createRobotBasis(x,y,z){ //Completed
 
     robot = new THREE.Object3D();
 
-    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,5,50, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,6,50, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
     robot.position.set(x,y,z);
 
     var positions = [[-10,20],[10,-20],[-10,-20],[10,20]];
