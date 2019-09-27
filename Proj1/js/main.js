@@ -6,6 +6,7 @@ var viewSize = 1/4;
 var robot, target;
 var arm, armBase;
 var robotColor = 0xff0000;
+var movement = new THREE.Vector3();
 
 var width = window.innerWidth;
 var height = window.innerHeight;
@@ -15,10 +16,10 @@ var rotateBasePos = false, rotateBaseNeg = false, rotateArmPos = false, rotateAr
 
 function createTopCamera(){
     'use strict';
-    topCamera = new THREE.OrthographicCamera( width / - 2 * viewSize, width / 2 * viewSize, height / 2 * viewSize, height / - 2 * viewSize, 1, 100 );
+    topCamera = new THREE.OrthographicCamera( width / - 2 * viewSize, width / 2 * viewSize, height / 2 * viewSize, height / - 2 * viewSize, 1, 200 );
 
     topCamera.position.x = 0;
-    topCamera.position.y = 50;
+    topCamera.position.y = 100;
     topCamera.position.z = 0;
     topCamera.lookAt(0,0,0);
 }
@@ -63,7 +64,7 @@ function createRobotBasis(x,y,z){ //Completed
 
     robot = new THREE.Object3D();
 
-    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,5,50, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,5,50, 1,1,1), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
     robot.position.set(x,y,z);
 
     var positions = [[-10,20],[10,-20],[-10,-20],[10,20]];
@@ -81,6 +82,7 @@ function createRobotBasis(x,y,z){ //Completed
     armBase = new THREE.Mesh( geometry, material );
     armBase.position.set( 0, 3, 0);
     robot.add(armBase);
+    movement = robot.getWorldDirection(movement);
 
     scene.add(robot);
 }
@@ -91,21 +93,21 @@ function createRobotArm(objBasis, x,y,z){ //TODO
     arm = new THREE.Object3D();
 
     // forearm
-    var geometry = new THREE.BoxGeometry( 3, 23, 3, 4,4,4);
+    var geometry = new THREE.BoxGeometry( 3, 23, 3, 1,1,1);
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
     var forearm = new THREE.Mesh( geometry, material );
     forearm.position.set(0, 17, 0);
     arm.add(forearm);
     
     // arm
-    var geometry = new THREE.BoxGeometry( 3, 3, 19, 4,4,4);
+    var geometry = new THREE.BoxGeometry( 3, 3, 19, 1,1,1);
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
     var _arm = new THREE.Mesh( geometry, material );
     _arm.position.set(0, 30, -11);
     arm.add(_arm);
 
     // hand
-    var geometry = new THREE.BoxGeometry( 6, 6, 1, 4,4,4);
+    var geometry = new THREE.BoxGeometry( 6, 6, 1, 1,1,1);
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
     var hand = new THREE.Mesh( geometry, material );
     hand.position.set(0, 30, -25);
@@ -114,7 +116,7 @@ function createRobotArm(objBasis, x,y,z){ //TODO
     // fingers
     var finger_positions = [28,32];
     for (let i=0; i<2; i+=1){
-        var geometry = new THREE.BoxGeometry( 1, 1, 5, 4,4,4);
+        var geometry = new THREE.BoxGeometry( 1, 1, 5, 1,1,1);
         var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
         var finger = new THREE.Mesh( geometry, material );
         finger.position.set( 0, finger_positions[i], -27);
@@ -140,7 +142,7 @@ function createTarget(x, y, z) {
 	target = new THREE.Object3D();
     target.position.set(x,y,z);
     
-    target.add(new THREE.Mesh(new THREE.BoxGeometry(10,40,5, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+    target.add(new THREE.Mesh(new THREE.BoxGeometry(10,40,5, 1,1,1), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
     // torus
     var geometry = new THREE.TorusGeometry(4, 1, 16, 50);
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
@@ -295,10 +297,16 @@ function onKeyUp(e){
 }
 
 function moveRobot() {
-    if (left) robot.position.x -= 1;
-    if (right) robot.position.x += 1;
-    if (up) robot.position.z -= 1;
-    if (down) robot.position.z += 1;
+    if (left) {
+        robot.rotateY(0.1);
+        movement = robot.getWorldDirection(movement);
+    } 
+    if (right) {
+        robot.rotateY(-0.1);
+        movement = robot.getWorldDirection(movement);
+    }
+    if (up) robot.position.add(movement.clone().negate());
+    if (down) robot.position.add(movement);
     if (rotateBasePos) armBase.rotateY(0.1);
     if (rotateBaseNeg) armBase.rotateY(-0.1);
     if (rotateArmPos && arm.rotation.x <= Math.PI*4/9) arm.rotateX(0.1);
