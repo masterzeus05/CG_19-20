@@ -4,7 +4,7 @@ var currCamera, controls;
 var viewSize = 1/4;
 var controls;
 
-var robot;
+var robot, target;
 var arm, armBase;
 var robotColor = 0xff0000;
 
@@ -64,7 +64,7 @@ function createRobotBasis(x,y,z){ //Completed
 
     robot = new THREE.Object3D();
 
-    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,5,50, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+    robot.add(new THREE.Mesh(new THREE.BoxGeometry(30,6,50, 8,8,8), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
     robot.position.set(x,y,z);
 
     var positions = [[-10,20],[10,-20],[-10,-20],[10,20]];
@@ -77,7 +77,7 @@ function createRobotBasis(x,y,z){ //Completed
         robot.add(sphere);
     }
 
-    var geometry = new THREE.SphereGeometry( 10, 16, 16, 0, 2*Math.PI, 0, 0.5*Math.PI );
+    var geometry = new THREE.SphereGeometry( 6, 16, 16, 0, 2*Math.PI, 0, 0.5*Math.PI );
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
     armBase = new THREE.Mesh( geometry, material );
     armBase.position.set( 0, 3, 0);
@@ -95,7 +95,7 @@ function createRobotArm(objBasis, x,y,z){ //TODO
     var geometry = new THREE.BoxGeometry( 3, 23, 3, 4,4,4);
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
     var forearm = new THREE.Mesh( geometry, material );
-    forearm.position.set(0, 20, 0);
+    forearm.position.set(0, 17, 0);
     arm.add(forearm);
     
     // arm
@@ -135,6 +135,24 @@ function createRobotArm(objBasis, x,y,z){ //TODO
     objBasis.add(arm);
 }
 
+function createTarget(x, y, z) {
+	'use strict';
+
+	target = new THREE.Object3D();
+    target.position.set(x,y,z);
+    
+    target.add(new THREE.Mesh(new THREE.CylinderGeometry( 5, 5, 38, 32 ), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+  
+    // torus
+    var geometry = new THREE.TorusGeometry(4, 1, 16, 50);
+    var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
+    var torus = new THREE.Mesh( geometry, material );
+    torus.position.set(0, 24, 0);
+    target.add(torus);
+
+    scene.add(target);
+}
+
 function createScene(){
     'use strict';
 
@@ -145,12 +163,14 @@ function createScene(){
     var geometry = new THREE.PlaneGeometry( 100, 100, 32 );
     var material = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide} ); 
     var plane = new THREE.Mesh( geometry, material );
-    plane.rotateX( - Math.PI / 2); 
+    plane.rotateX( - Math.PI / 2);
+    plane.position.set(0, 2, 0);
     scene.add( plane );
 
     //Creation of Models
     createRobotBasis(0,15,0);
     createRobotArm(armBase, 0, 0, 0);
+    createTarget(0, 21, -40);
 }
 
 function onResize(){
