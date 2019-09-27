@@ -141,6 +141,7 @@ function createTarget(x, y, z) {
     target.position.set(x,y,z);
     
     target.add(new THREE.Mesh(new THREE.CylinderGeometry( 5, 5, 38, 32 ), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
+  
     // torus
     var geometry = new THREE.TorusGeometry(4, 1, 16, 50);
     var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
