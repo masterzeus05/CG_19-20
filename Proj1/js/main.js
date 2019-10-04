@@ -16,13 +16,16 @@ var rotateBasePos = false, rotateBaseNeg = false, rotateArmPos = false, rotateAr
 class Robot extends THREE.Object3D {
     constructor(width, height, depth, radius) {
         super();
+
         this.base = new RobotBase(width, height, depth, [[-10,20],[10,-20],[-10,-20],[10,20]]);
         this.add(this.base);
+
         this.armBase = new ArmBase(radius, 0, 3, 0);
-        this.add(this.armBase);
+        this.base.add(this.armBase);
+        
         this.robotArm = new RobotArm();
         this.armBase.add(this.robotArm);
-        this.movement = this.getWorldDirection(new THREE.Vector3());
+        //this.movement = this.getWorldDirection(new THREE.Vector3());
     }
 
     getBase() {
@@ -42,21 +45,25 @@ class Robot extends THREE.Object3D {
     }
 
     moveLeft() {
-        robot.rotateY(0.1);
-        this.movement = this.getWorldDirection(this.movement);
+        // robot.rotateY(0.1);
+        // this.movement = this.getWorldDirection(this.movement);
+        this.translateX(-1);
     }
 
     moveRight() {
-        robot.rotateY(-0.1);
-        this.movement = this.getWorldDirection(this.movement);
+        // robot.rotateY(-0.1);
+        // this.movement = this.getWorldDirection(this.movement);
+        this.translateX(1);
     }
 
     moveUp() {
-        this.position.add(this.movement.clone().negate());
+        //this.position.add(this.movement.clone().negate());
+        this.translateZ(-1);
     }
 
     moveDown() {
-        this.position.add(this.movement);
+        //this.position.add(this.movement);
+        this.translateZ(1);
     }
 
     rotateBasePositive() {
@@ -113,58 +120,57 @@ class ArmBase extends THREE.Object3D {
 class RobotArm extends THREE.Object3D {
     constructor() {
         super();
-        this.foreArm = new Arm(3, 23, 3, 0, 17, 0);
+
+        this.foreArm = new Arm(3, 20, 3, 0, 16, 0);
         this.add(this.foreArm);
-        this.arm = new Arm(3, 3, 19, 0, 30, -11);
-        this.add(this.arm);
-        this.hand = new Hand(6, 6, 1, 0, 30, -25);
-        this.add(this.hand);
-        this.articulation1 = new Articulation(3, 0, 30, 0);
-        this.add(this.articulation1);
-        this.articulation2 = new Articulation(3, 0, 30, -22);
-        this.add(this.articulation2);
+
+        this.articulation1 = new Articulation(3, 0, 12, 0);
+        this.foreArm.add(this.articulation1);
+
+        this.arm = new Arm(3, 3, 30, 0, 0, -17);
+        this.articulation1.add(this.arm);
+
+        this.articulation2 = new Articulation(3, 0, 0, -15);
+        this.arm.add(this.articulation2);
+
+        this.hand = new Hand(6, 6, 1, 0, 0, -3);
+        this.articulation2.add(this.hand);
     }
 }
 
-class Arm extends THREE.Object3D {
+class Arm extends THREE.Mesh {
     constructor(width, height, depth, x, y, z) {
-        super();
         var geometry = new THREE.BoxGeometry( width, height, depth, 1,1,1);
         var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
-        var arm = new THREE.Mesh( geometry, material );
-        arm.position.set(x, y, z);
-        this.add(arm);
+        super(geometry, material);
+        this.position.set(x, y, z);
     }
 }
 
-class Hand extends THREE.Object3D {
+class Hand extends THREE.Mesh {
     constructor(width, height, depth, x, y, z) {
-        super();
         var geometry = new THREE.BoxGeometry( width, height, depth, 1,1,1);
         var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
-        var hand = new THREE.Mesh( geometry, material );
-        hand.position.set(x, y, z);
-        this.add(hand);
+        super(geometry, material);
+        this.position.set(x, y, z);
 
-        var finger_positions = [28,32];
+        var finger_positions = [-2,2];
         for (let i=0; i<2; i+=1){
             var geometry = new THREE.BoxGeometry( 1, 1, 5, 1,1,1);
             var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
             var finger = new THREE.Mesh( geometry, material );
-            finger.position.set( 0, finger_positions[i], -27);
+            finger.position.set( 0, finger_positions[i], -2);
             this.add(finger);
         }
     }
 }
 
-class Articulation extends THREE.Object3D {
+class Articulation extends THREE.Mesh {
     constructor(radius, x, y, z) {
-        super();
         var geometry = new THREE.SphereGeometry( radius, 16, 16 );
         var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
-        var support = new THREE.Mesh( geometry, material );
-        support.position.set(x, y, z);
-        this.add(support);
+        super(geometry, material);
+        this.position.set(x, y, z);
     }
 }
 
@@ -184,34 +190,15 @@ class Target extends THREE.Object3D {
     }
 }
 
-function createTopCamera(){
-    'use strict';
-    topCamera = new THREE.OrthographicCamera( width / - 2 * viewSize, width / 2 * viewSize, height / 2 * viewSize, height / - 2 * viewSize, 1, 200 );
+class Camera extends THREE.OrthographicCamera {
+    constructor(x, y, z, lookx, looky, looz) {
+        super(width / - 2 * viewSize, width / 2 * viewSize, height / 2 * viewSize, height / - 2 * viewSize, 1, 200);
 
-    topCamera.position.x = 0;
-    topCamera.position.y = 100;
-    topCamera.position.z = 0;
-    topCamera.lookAt(0,0,0);
-}
-
-function createLateralCamera(){
-    'use strict';
-    lateralCamera = new THREE.OrthographicCamera( width / - 2 * viewSize, width / 2 * viewSize, height / 2 * viewSize, height / - 2 * viewSize, 1, 100 );
-
-    lateralCamera.position.x = 50;
-    lateralCamera.position.y = 30;
-    lateralCamera.position.z = 0;
-    lateralCamera.lookAt(0,30,0);
-}
-
-function createFrontalCamera(){
-    'use strict';
-    frontCamera = new THREE.OrthographicCamera( width / - 2 * viewSize, width / 2 * viewSize, height / 2 * viewSize, height / - 2 * viewSize, 1, 100 );
-
-    frontCamera.position.x = 0;
-    frontCamera.position.y = 30;
-    frontCamera.position.z = 50;
-    frontCamera.lookAt(0,30,0);
+        this.position.x = x;
+        this.position.y = y;
+        this.position.z = z;
+        this.lookAt(lookx,looky,looz);
+    }
 }
 
 function createCamera(){ //WRONG
@@ -421,9 +408,10 @@ function init(){
 
     createScene();
     createCamera(); //WRONG
-    createTopCamera();
-    createLateralCamera();
-    createFrontalCamera();
+    topCamera = new Camera(0, 100, 0, 0, 0, 0);
+    lateralCamera = new Camera(50, 30, 0, 0, 30, 0);
+    frontCamera = new Camera(0, 30, 50, 0, 30, 0);
+
 
     currCamera = camera;
     render();
