@@ -17,12 +17,15 @@ class Robot extends THREE.Object3D {
     constructor(width, height, depth, radius) {
         super();
 
+        // Create robot base
         this.base = new RobotBase(width, height, depth, [[-10,20],[10,-20],[-10,-20],[10,20]]);
         this.add(this.base);
 
+        // Create arm base
         this.armBase = new ArmBase(radius, 0, 3, 0);
         this.base.add(this.armBase);
         
+        // Create robot arm
         this.robotArm = new RobotArm();
         this.armBase.add(this.robotArm);
         //this.movement = this.getWorldDirection(new THREE.Vector3());
@@ -121,18 +124,23 @@ class RobotArm extends THREE.Object3D {
     constructor() {
         super();
 
+        // Create forearm
         this.foreArm = new Arm(3, 20, 3, 0, 16, 0);
         this.add(this.foreArm);
 
+        // Create arm articulation
         this.articulation1 = new Articulation(3, 0, 12, 0);
         this.foreArm.add(this.articulation1);
 
+        // Create arm
         this.arm = new Arm(3, 3, 30, 0, 0, -17);
         this.articulation1.add(this.arm);
 
+        // Create hand articulation
         this.articulation2 = new Articulation(3, 0, 0, -15);
         this.arm.add(this.articulation2);
 
+        // Create hand
         this.hand = new Hand(6, 6, 1, 0, 0, -3);
         this.articulation2.add(this.hand);
     }
@@ -215,7 +223,7 @@ function createCamera(){ //WRONG
     camera.lookAt(0,0,0);
 }
 
-function createRobotBasis(x,y,z){ //Completed
+function createRobot(x,y,z){ //Completed
     'use strict';
     robot = new Robot(30, 6, 50, 6);
     robot.position.set(x,y,z);
@@ -236,7 +244,7 @@ function createScene(){
     scene.add(new THREE.AxesHelper(100));
 
     //Plane for help
-    var geometry = new THREE.PlaneGeometry( 1000, 1000, 32 );
+    var geometry = new THREE.PlaneGeometry( 500, 500, 32 );
     var material = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide} ); 
     var plane = new THREE.Mesh( geometry, material );
     plane.rotateX( - Math.PI / 2);
@@ -244,8 +252,8 @@ function createScene(){
     scene.add( plane );
 
     //Creation of Models
-    createRobotBasis(0,15,0);
-    createTarget(0, 21, -40);
+    createRobot(0,15,0);
+    createTarget(0, 21, -60);
 }
 
 function onResize(){
