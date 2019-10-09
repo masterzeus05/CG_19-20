@@ -1,8 +1,7 @@
 var scene, renderer;
 var topCamera, lateralCamera, frontCamera;
-var currCamera, controls;
+var currCamera;
 var viewSize = 1/4;
-var controls;
 
 var robot, target;
 var robotColor = 0xff0000;
@@ -247,10 +246,7 @@ function onResize(){
     renderer.setSize(window.innerWidth, window.innerHeight);
     var width = renderer.getSize().width, height = renderer.getSize().height;
 
-    if (window.innerHeight > 0 && window.innerWidth > 0){
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-
+    if (window.innerHeight > 0 && window.innerWidth > 0) {
         topCamera.left = width / -2 * viewSize;
         topCamera.right = -topCamera.left;
         topCamera.top = height / 2 * viewSize;
@@ -279,10 +275,6 @@ function onKeyDown(e){
     'use strict';
 
     switch(e.keyCode){
-        case 48: //0 - Default Camera (WRONG)
-            console.log("Default camera activates!");
-            currCamera = camera;
-            break;
         case 49: //1 - Top Camera
             console.log("TopCamera activates!");
             currCamera = topCamera;
@@ -380,7 +372,6 @@ function moveRobot() {
 function animate(){
     'use strict';
 
-    controls.update();
     render();
     moveRobot();
 
@@ -408,9 +399,6 @@ function init(){
 
     currCamera = topCamera;
     render();
-
-    controls = new THREE.OrbitControls( currCamera, renderer.domElement );
-    controls.update();
 
     window.addEventListener("resize", onResize);
     window.addEventListener("keydown", onKeyDown);
