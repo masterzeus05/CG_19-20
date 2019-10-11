@@ -23,7 +23,7 @@ class Robot extends THREE.Object3D {
         // Create arm base
         this.armBase = new ArmBase(radius, 0, 3, 0);
         this.base.add(this.armBase);
-        
+
         // Create robot arm
         this.robotArm = new RobotArm();
         this.armBase.add(this.robotArm);
@@ -101,7 +101,7 @@ class RobotBase extends THREE.Object3D {
             var geometry = new THREE.SphereGeometry( 5, 16, 16 );
             var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
             var sphere = new THREE.Mesh( geometry, material );
-        
+
             sphere.position.set( positions[i][0], -8, positions[i][1]);
             this.add(sphere);
         }
@@ -185,9 +185,8 @@ class Target extends THREE.Object3D {
     constructor(cilRad1, cilRad2, cilHeight, cilx, cily, cilz, torusRad, torusx, torusy, torusz) {
         super();
         this.position.set(cilx,cily,cilz);
-        
         this.add(new THREE.Mesh(new THREE.CylinderGeometry( cilRad1, cilRad2, cilHeight, 8 ), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
-    
+
         // torus
         var geometry = new THREE.TorusGeometry(torusRad, 1, 16, 50);
         var material = new THREE.MeshBasicMaterial( {color: 0x797979, wireframe:true} );
@@ -230,7 +229,7 @@ function createScene(){
 
     //Plane for help
     var geometry = new THREE.PlaneGeometry( 500, 500, 32 );
-    var material = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide} ); 
+    var material = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide} );
     var plane = new THREE.Mesh( geometry, material );
     plane.rotateX( - Math.PI / 2);
     plane.position.set(0, 2, 0);
@@ -372,8 +371,8 @@ function moveRobot() {
 function animate(){
     'use strict';
 
-    render();
     moveRobot();
+    render();
 
     requestAnimationFrame(animate);
 }
