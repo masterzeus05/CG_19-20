@@ -185,7 +185,6 @@ class Target extends THREE.Object3D {
     constructor(cilRad1, cilRad2, cilHeight, cilx, cily, cilz, torusRad, torusx, torusy, torusz) {
         super();
         this.position.set(cilx,cily,cilz);
-
         this.add(new THREE.Mesh(new THREE.CylinderGeometry( cilRad1, cilRad2, cilHeight, 8 ), new THREE.MeshBasicMaterial({color: robotColor, wireframe: true})));
 
         // torus
