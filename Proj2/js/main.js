@@ -5,7 +5,7 @@ var controls;
 var canons = [], balls = [], wallSurface;
 var wallsColor = 0xff0000, ballsColor = 0xffffff, canonsColor = 0x00ff00, selectedColor = 0x0000ff;
 var materials = [], leftLimit, rightLimit, distanceCanonWall = 100;
-var wireframeOn = true;
+var wireframeOn = true, showAxis = true;
 
 var width = window.innerWidth, height = window.innerHeight;
 
@@ -46,6 +46,10 @@ class Canon extends THREE.Object3D {
 
     changeColor(color){
         this.mesh.material.color.setHex(color);
+    }
+
+    ChangeShooting(value) {
+        this.canShoot = value;
     }
 }
 
@@ -110,10 +114,39 @@ class Ball extends THREE.Object3D {
         var material = new THREE.MeshBasicMaterial({ color:0xffffff, wireframe: wireframeOn });
         materials.push(material);
         this.mesh = new THREE.Mesh(geometry, material);
-        // this.mesh.setRotationFromEuler(this.mesh.rotation);
-        // var axis = new THREE.AxesHelper(20);
-        // this.mesh.add(axis);
+        this.mesh.setRotationFromEuler(this.mesh.rotation);
+        this.axis = new THREE.AxesHelper(20);
+        this.axis.visible = showAxis;
+        this.mesh.add(this.axis);
         this.add(this.mesh);
+    }
+
+    setPosition(x, y, z) {
+        this.position.set(x, y, z);
+    }
+
+    positionIncrease(vector) {
+        this.position.add(vector);
+    }
+
+    setRotationY(rot) {
+        this.rotation.y = rot;
+    }
+
+    setVelocity(x, y, z) {
+        this.velocity = new THREE.Vector3(x, y, z);
+    }
+
+    getVelocity(){
+        return this.velocity;
+    }
+
+    getVelocityX() {
+        return this.velocity.x;
+    }
+
+    getVelocityZ() {
+        return this.velocity.z;
     }
 }
 
@@ -238,7 +271,11 @@ function onKeyDown(e){
             selectedCanon = canons["right"];
             selectedCanon.changeColor(selectedColor);
             break;
-        case 69: //r - show balls axis
+        case 82: //r - show balls axis
+            showAxis = !showAxis;
+            for (var i = 0; i < balls.length ; i++) {
+                balls[i].axis.visible = showAxis;
+            }
             break;
         case 37: // < - Move left
             movementFlags["moveLeft"] = 1;
@@ -249,11 +286,14 @@ function onKeyDown(e){
         case 32: //space bar - shoot a ball
             if (selectedCanon.canShoot) {
                 var ball = new Ball();
-                ball.position.set(selectedCanon.position.x, selectedCanon.position.y, selectedCanon.position.z);
-                ball.rotation.y =  selectedCanon.rotation.y;
-                ball.velocity = new THREE.Vector3(-Math.sin(selectedCanon.rotation.y), 0, -Math.cos(selectedCanon.rotation.y));
+                ball.setPosition(selectedCanon.position.x, selectedCanon.position.y, selectedCanon.position.z);
+                ball.setRotationY( selectedCanon.rotation.y);
+                var random = 1 + Math.random();
+                selectedCanon.rotation.y == 0 ? 
+                        ball.setVelocity(0, 0, -Math.cos(selectedCanon.rotation.y) * random) : 
+                        ball.setVelocity(-Math.sin(selectedCanon.rotation.y) * random, 0, -Math.cos(selectedCanon.rotation.y) * random);
                 balls.push(ball);
-                selectedCanon.canShoot = false;
+                selectedCanon.ChangeShooting(false);
                 window.setTimeout(function() { canShootAgain(selectedCanon); }, 1000);
                 scene.add(ball);
             }
@@ -281,7 +321,7 @@ function onKeyUp(e){
 }
 
 function canShootAgain(cannon) {
-    cannon.canShoot = true;
+    cannon.ChangeShooting(true);
 }
 
 function createFieldBalls() {
@@ -315,16 +355,16 @@ function updatePosition() {
     if (movementFlags["moveRight"]) selectedCanon.moveRight(rightLimit);
 
     for (var i = 0; i < balls.length ; i++) {
-        if(balls[i].velocity) {
+        if(balls[i].getVelocity()) {
             // Update Position
-            balls[i].position.add(balls[i].velocity);
+            balls[i].positionIncrease(balls[i].velocity);
 
             // Update Velocity
-            if (balls[i].velocity.x) balls[i].velocity = new THREE.Vector3(balls[i].velocity.x - balls[i].velocity.x/500, 0, balls[i].velocity.z - balls[i].velocity.z/500);
-            else balls[i].velocity = new THREE.Vector3(0, 0, balls[i].velocity.z - balls[i].velocity.z/500);
+            if (balls[i].getVelocityX()) balls[i].setVelocity(balls[i].getVelocityX() - balls[i].getVelocityX()/500, 0, balls[i].getVelocityZ() - balls[i].getVelocityZ()/500);
+            else balls[i].setVelocity(0, 0, balls[i].getVelocityZ() - balls[i].getVelocityZ()/500);
 
             // Update rotation
-            if (balls[i].velocity.z) balls[i].rotateX(balls[i].velocity.z / 10);
+            if (balls[i].getVelocityZ()) balls[i].rotateX(balls[i].getVelocityZ() / 10);
         }
     }
 }
