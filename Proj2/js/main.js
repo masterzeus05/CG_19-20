@@ -60,7 +60,7 @@ class Canon extends THREE.Object3D {
         this.mesh.material.color.setHex(color);
     }
 
-    ChangeShooting(value) {
+    changeShooting(value) {
         this.canShoot = value;
     }
 
@@ -163,6 +163,10 @@ class Ball extends THREE.Object3D {
 
     getVelocityZ() {
         return this.velocity.z;
+    }
+
+    setAxis(value) {
+        this.axis.visible = value;
     }
 }
 
@@ -271,8 +275,8 @@ function onKeyDown(e){
             currCamera = frontCamera;
             break;
         case 52: //4 - Wireframe toggle
-            for (let i=0; i<materials.length; i++) materials[i].wireframe = !materials[i].wireframe;
             wireframeOn = !wireframeOn;
+            for (let i=0; i<materials.length; i++) materials[i].wireframe = wireframeOn;
             break;
         case 81: //q - Select left canon
             selectedCanon.changeColor(canonsColor);
@@ -292,7 +296,7 @@ function onKeyDown(e){
         case 82: //r - show balls axis
             showAxis = !showAxis;
             for (var i = 0; i < balls.length ; i++) {
-                balls[i].axis.visible = showAxis;
+                balls[i].setAxis(showAxis);
             }
             break;
         case 37: // < - Move left
@@ -309,7 +313,7 @@ function onKeyDown(e){
                 var random = 1 + Math.random();
                 ball.setVelocity(-Math.sin(selectedCanon.rotation.y) * random, 0, -Math.cos(selectedCanon.rotation.y) * random);
                 balls.push(ball);
-                selectedCanon.ChangeShooting(false);
+                selectedCanon.changeShooting(false);
                 window.setTimeout(function() { canShootAgain(selectedCanon); }, 1000);
                 scene.add(ball);
             }
@@ -337,7 +341,7 @@ function onKeyUp(e){
 }
 
 function canShootAgain(cannon) {
-    cannon.ChangeShooting(true);
+    cannon.changeShooting(true);
 }
 
 function createFieldBalls(numb, coorX, coorZ) {
@@ -360,7 +364,7 @@ function createFieldBalls(numb, coorX, coorZ) {
 
             if (j == balls.length) onTop = false;
         }
-        ball.position.set(x, 10, z);
+        ball.setPosition(x, 10, z);
         balls.push(ball);
         scene.add(ball);
     }
