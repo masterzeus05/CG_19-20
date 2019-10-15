@@ -47,24 +47,18 @@ class Robot extends THREE.Object3D {
     }
 
     moveLeft() {
-        // robot.rotateY(0.1);
-        // this.movement = this.getWorldDirection(this.movement);
         this.translateX(-1);
     }
 
     moveRight() {
-        // robot.rotateY(-0.1);
-        // this.movement = this.getWorldDirection(this.movement);
         this.translateX(1);
     }
 
     moveUp() {
-        //this.position.add(this.movement.clone().negate());
         this.translateZ(-1);
     }
 
     moveDown() {
-        //this.position.add(this.movement);
         this.translateZ(1);
     }
 
@@ -352,7 +346,6 @@ function onKeyUp(e){
             down = false;
             break;
         default:
-            //console.log(e.keyCode);
             break;
     }
 }

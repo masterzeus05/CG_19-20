@@ -17,7 +17,7 @@ class Canon extends THREE.Object3D {
         super();
 
         this.position.set(x, y, z);
-        var geometry = new THREE.CylinderGeometry( 10, 10, 50, 8, 1);
+        var geometry = new THREE.CylinderGeometry( 10, 10, 50, 64, 1);
         var material = new THREE.MeshBasicMaterial({color: canonsColor, wireframe: true});
         materials.push(material);
         var mesh = new THREE.Mesh(geometry, material);
@@ -32,6 +32,18 @@ class Canon extends THREE.Object3D {
         var direction = new THREE.Vector3();
         this.getWorldDirection(direction);
         return direction;
+    }
+
+    getPosX() {
+        return this.position.x;
+    }
+
+    getPosY() {
+        return this.position.y;
+    }
+
+    getPosZ() {
+        return this.position.z;
     }
 
     moveLeft(leftLimit) {
@@ -50,6 +62,10 @@ class Canon extends THREE.Object3D {
 
     ChangeShooting(value) {
         this.canShoot = value;
+    }
+
+    getRotY() {
+        return this.rotation.y;
     }
 }
 
@@ -110,7 +126,7 @@ class PerCamera extends THREE.PerspectiveCamera {
 class Ball extends THREE.Object3D {
     constructor() {
         super();
-        var geometry = new THREE.SphereGeometry(10, 8, 8);
+        var geometry = new THREE.SphereGeometry(10, 16, 16);
         var material = new THREE.MeshBasicMaterial({ color:0xffffff, wireframe: wireframeOn });
         materials.push(material);
         this.mesh = new THREE.Mesh(geometry, material);
@@ -194,9 +210,11 @@ function createScene(){
     createCanon(-50, 10, distanceCanonWall, -Math.PI/16, "left");
     selectedCanon = canons["center"];
     selectedCanon.changeColor(selectedColor);
-    createFieldBalls();
 
     createWalls(0,0,0);
+
+    createFieldBalls(3, rightLimit, -(distanceCanonWall - 10));
+    createFieldBalls(3, leftLimit, -(distanceCanonWall - 10));
 }
 
 function onResize(){
@@ -286,12 +304,10 @@ function onKeyDown(e){
         case 32: //space bar - shoot a ball
             if (selectedCanon.canShoot) {
                 var ball = new Ball();
-                ball.setPosition(selectedCanon.position.x, selectedCanon.position.y, selectedCanon.position.z);
-                ball.setRotationY( selectedCanon.rotation.y);
+                ball.setPosition(selectedCanon.getPosX(), selectedCanon.getPosY(), selectedCanon.getPosZ());
+                ball.setRotationY( selectedCanon.getRotY());
                 var random = 1 + Math.random();
-                selectedCanon.rotation.y == 0 ? 
-                        ball.setVelocity(0, 0, -Math.cos(selectedCanon.rotation.y) * random) : 
-                        ball.setVelocity(-Math.sin(selectedCanon.rotation.y) * random, 0, -Math.cos(selectedCanon.rotation.y) * random);
+                ball.setVelocity(-Math.sin(selectedCanon.rotation.y) * random, 0, -Math.cos(selectedCanon.rotation.y) * random);
                 balls.push(ball);
                 selectedCanon.ChangeShooting(false);
                 window.setTimeout(function() { canShootAgain(selectedCanon); }, 1000);
@@ -324,11 +340,11 @@ function canShootAgain(cannon) {
     cannon.ChangeShooting(true);
 }
 
-function createFieldBalls() {
-    for (var i = 0; i < Math.random() * 10; i++) {
+function createFieldBalls(numb, coorX, coorZ) {
+    for (var i = 0; i < Math.random() * numb; i++) {
         var ball = new Ball();
-        var x = Math.random() * 40 - 20;
-        var z = Math.random() * 40 - 20;
+        var x = Math.random() * coorX;
+        var z = Math.random() * coorZ;
         var onTop = true
         while (onTop) {
             var j = 0;
@@ -336,8 +352,8 @@ function createFieldBalls() {
             for (j = 0; j < balls.length; j++) {
                 var ballPos = new THREE.Vector3(balls[j].position.x, balls[j].position.y, balls[j].position.z);
                 if (ballPos.distanceTo(newBallPos) < 20) {
-                    x = Math.random() * 40 - 20;
-                    z = Math.random() * 40 - 20;
+                    x = Math.random() * coorX;
+                    z = Math.random() * coorZ;
                     break;
                 }
             }
@@ -395,7 +411,7 @@ function init(){
     createScene();
     createPerspectiveCamera();
     topCamera = new OrtCamera(0, 100, 0, 0, 0, 0);
-    lateralCamera = new PerCamera(200, 200, 200, 0, 0, 0);
+    lateralCamera = new PerCamera(0, 200, 150, 0, 0, 0);
     frontCamera = new OrtCamera(0, 30, 200, 0, 30, 0);
 
 
