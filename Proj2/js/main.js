@@ -11,7 +11,7 @@ var wireframeOn = true, showAxis = true;
 
 var width = window.innerWidth, height = window.innerHeight;
 var timePrev = 0;
-var deacceleration = 498/500;
+var deacceleration = 995/1000;
 
 var movementFlags = {"moveLeft":0, "moveRight":0}, selectedCannon;
 var angleMovement = Math.PI/180;
@@ -106,7 +106,7 @@ class Ball extends THREE.Object3D {
     }
 
     increaseRotationX(delta){
-        var rot = this.getVelocityZ() / 10 * delta;
+        var rot = this.getVelocity().z / 10 * delta;
         if (rot) this.rotation.x += rot;
     }
 
