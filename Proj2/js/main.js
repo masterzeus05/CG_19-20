@@ -1,5 +1,5 @@
 var scene, renderer, currCamera, viewSize = 3/4;
-var topCamera, lateralCamera, frontCamera, camera;
+var topCamera, perCamera, ballCamera, camera;
 var controls;
 
 var canons = [], balls = [], wallSurface;
@@ -121,6 +121,24 @@ class PerCamera extends THREE.PerspectiveCamera {
         this.position.z = z;
         this.lookAt(lookx,looky,looz);
     }
+
+    setCameraPosition(x, y, z) {
+        this.position.x = x;
+        this.position.y = y;
+        this.position.z = z;
+    }
+
+    setFollowingBall(ball) {
+        this.ball = ball;
+    }
+
+    getFollowingBall() {
+        return this.ball;
+    }
+
+    setCameraRotation(value) {
+        this.rotation.y = value;
+    }
 }
 
 class Ball extends THREE.Object3D {
@@ -141,12 +159,28 @@ class Ball extends THREE.Object3D {
         this.position.set(x, y, z);
     }
 
+    getPositionX() {
+        return this.position.x;
+    }
+
+    getPositionY() {
+        return this.position.y;
+    }
+
+    getPositionZ() {
+        return this.position.z;
+    }
+
     positionIncrease(vector) {
         this.position.add(vector);
     }
 
     setRotationY(rot) {
         this.rotation.y = rot;
+    }
+
+    getRotationY() {
+        return this.roty;
     }
 
     setVelocity(x, y, z) {
@@ -237,18 +271,18 @@ function onResize(){
         topCamera.updateProjectionMatrix();
         renderer.setSize(width, height);
 
-        lateralCamera.left = width / -2 * viewSize;
-        lateralCamera.right = -topCamera.left;
-        lateralCamera.top = height / 2 * viewSize;
-        lateralCamera.bottom = -topCamera.top;
-        lateralCamera.updateProjectionMatrix();
+        perCamera.left = width / -2 * viewSize;
+        perCamera.right = -topCamera.left;
+        perCamera.top = height / 2 * viewSize;
+        perCamera.bottom = -topCamera.top;
+        perCamera.updateProjectionMatrix();
         renderer.setSize(width, height);
 
-        frontCamera.left = width / -2 * viewSize;
-        frontCamera.right = -topCamera.left;
-        frontCamera.top = height / 2 * viewSize;
-        frontCamera.bottom = -topCamera.top;
-        frontCamera.updateProjectionMatrix();
+        ballCamera.left = width / -2 * viewSize;
+        ballCamera.right = -topCamera.left;
+        ballCamera.top = height / 2 * viewSize;
+        ballCamera.bottom = -topCamera.top;
+        ballCamera.updateProjectionMatrix();
         renderer.setSize(width, height);
     }
 
@@ -267,12 +301,12 @@ function onKeyDown(e){
             currCamera = topCamera;
             break;
         case 50: //2 - Lateral Camera
-            console.log("LateralCamera activates!");
-            currCamera = lateralCamera;
+            console.log("perCamera activates!");
+            currCamera = perCamera;
             break;
         case 51: //3 - Front Camera
-            console.log("FrontalCamera activates!");
-            currCamera = frontCamera;
+            console.log("ballCamera activates!");
+            followBall(ballCamera);
             break;
         case 52: //4 - Wireframe toggle
             wireframeOn = !wireframeOn;
@@ -387,7 +421,29 @@ function updatePosition() {
             if (balls[i].getVelocityZ()) balls[i].rotateX(balls[i].getVelocityZ() / 10);
         }
     }
+
+    if (currCamera == ballCamera) {
+        currCamera.setCameraPosition(currCamera.getFollowingBall().getPositionX() - currCamera.getFollowingBall().getVelocityX() * 50, 
+                                     currCamera.getFollowingBall().getPositionY() + 10, 
+                                     currCamera.getFollowingBall().getPositionZ() + 30 - currCamera.getFollowingBall().getVelocityZ() * 50);
+        currCamera.lookAt(currCamera.getFollowingBall().position);
+    }
 }
+
+function followBall(camera) {
+    var random = Math.round(Math.random() * (balls.length - 1));
+    var randomBall = balls[balls.length - 1];
+    var angle = randomBall.getRotationY();
+
+    if (angle) {
+        camera.setCameraPosition(randomBall.getPositionX(), randomBall.getPositionY() + 10, randomBall.getPositionZ() + 30);
+        camera.lookAt(randomBall.position);
+    }
+    else camera.setCameraPosition(randomBall.getPositionX(), randomBall.getPositionY() + 10, randomBall.getPositionZ() + 30);
+    camera.setFollowingBall(randomBall);
+    console.log("rot: " + randomBall.getRotationY());
+    currCamera = camera;
+} 
 
 function animate(){
     'use strict';
@@ -415,8 +471,8 @@ function init(){
     createScene();
     createPerspectiveCamera();
     topCamera = new OrtCamera(0, 100, 0, 0, 0, 0);
-    lateralCamera = new PerCamera(0, 200, 150, 0, 0, 0);
-    frontCamera = new OrtCamera(0, 30, 200, 0, 30, 0);
+    perCamera = new PerCamera(0, 200, 150, 0, 0, 0);
+    ballCamera = new PerCamera(0, 30, 200, 0, 0, 0);
 
 
     currCamera = camera;
