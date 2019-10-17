@@ -11,6 +11,7 @@ var wireframeOn = true, showAxis = true;
 
 var width = window.innerWidth, height = window.innerHeight;
 var timePrev = 0;
+var deacceleration = 498/500;
 
 var movementFlags = {"moveLeft":0, "moveRight":0}, selectedCannon;
 var angleMovement = Math.PI/180;
@@ -88,14 +89,16 @@ class Ball extends THREE.Object3D {
         this.axis.visible = showAxis;
         this.mesh.add(this.axis);
         this.add(this.mesh);
+        this.setVelocity(0,0,0);
     }
 
     setPosition(x, y, z) {
         this.position.set(x, y, z);
     }
 
-    positionIncrease(vector) {
-        this.position.add(vector);
+    positionIncrease(delta) {
+        var vector = this.velocity.clone().multiplyScalar(delta)
+        if (vector.length()) this.position.add(vector);
     }
 
     setRotationY(rot) {
@@ -104,7 +107,7 @@ class Ball extends THREE.Object3D {
 
     increaseRotationX(delta){
         var rot = this.getVelocityZ() / 10 * delta;
-        this.rotation.x += rot;
+        if (rot) this.rotation.x += rot;
     }
 
     setVelocity(x, y, z) {
@@ -117,14 +120,6 @@ class Ball extends THREE.Object3D {
 
     getVelocity(){
         return this.velocity;
-    }
-
-    getVelocityX() {
-        return this.velocity.x;
-    }
-
-    getVelocityZ() {
-        return this.velocity.z;
     }
 
     setAxis(value) {
@@ -389,23 +384,20 @@ function updatePosition(delta) {
     if (movementFlags["moveRight"]) selectedCannon.moveRight(rightLimit, delta);
 
     for (var i = 0; i < balls.length ; i++) {
-        if(balls[i].getVelocity()) {
-            // Update Position
-            balls[i].positionIncrease(balls[i].velocity, delta);
+        // Update Position
+        balls[i].positionIncrease(delta);
 
-            // Update Velocity
-            balls[i].changeVelocityScalar(499/500, delta);
+        // Update Velocity
+        balls[i].changeVelocityScalar(deacceleration, delta);
 
-            // Update rotation
-            balls[i].increaseRotationX(delta);
-        }
+        // Update rotation
+        balls[i].increaseRotationX(delta);
     }
 }
 
 function animate(time){
     'use strict';
     var delta = (time - timePrev)/10;
-    //console.log(delta);
 
     controls.update();
     updatePosition(delta);
