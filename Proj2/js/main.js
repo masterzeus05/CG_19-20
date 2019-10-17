@@ -2,26 +2,29 @@ var scene, renderer, currCamera, viewSize = 3/4;
 var topCamera, lateralCamera, frontCamera, camera;
 var controls;
 
-var canons = [], balls = [], wallSurface;
-var wallsColor = 0xff0000, ballsColor = 0xffffff, canonsColor = 0x00ff00, selectedColor = 0x0000ff;
-var materials = [], leftLimit, rightLimit, distanceCanonWall = 100;
+var cannons = [], balls = [], wallSurface;
+var cannonRadius = 5, cannonLength = 50, ballRadius = 5, wallLength = 100, wallHeight = 4*ballRadius;
+
+var wallsColor = 0xff0000, ballsColor = 0xffffff, cannonsColor = 0x00ff00, selectedColor = 0x0000ff, backgroundColor = 0xc6c6c6;
+var materials = [], leftLimit, rightLimit, distanceCannonWall = 100;
 var wireframeOn = true, showAxis = true;
 
 var width = window.innerWidth, height = window.innerHeight;
+var timePrev = 0;
 
-var movementFlags = {"moveLeft":0, "moveRight":0}, selectedCanon;
+var movementFlags = {"moveLeft":0, "moveRight":0}, selectedCannon;
 var angleMovement = Math.PI/180;
 
-class Canon extends THREE.Object3D {
+class Cannon extends THREE.Object3D {
     constructor(x, y, z, angle) {
         super();
 
-        this.position.set(x, y, z);
-        var geometry = new THREE.CylinderGeometry( 10, 10, 50, 64, 1);
-        var material = new THREE.MeshBasicMaterial({color: canonsColor, wireframe: true});
+        this.position.set(x, y+cannonRadius, z);
+        var geometry = new THREE.CylinderGeometry(cannonRadius, cannonRadius*1.5, cannonLength, 64, 1);
+        var material = new THREE.MeshBasicMaterial({color: cannonsColor, wireframe: true});
         materials.push(material);
         var mesh = new THREE.Mesh(geometry, material);
-        mesh.rotateX(Math.PI/2);
+        mesh.rotateX(-Math.PI/2);
         this.add(mesh);
         this.rotateY(angle);
         this.mesh = mesh;
@@ -46,14 +49,14 @@ class Canon extends THREE.Object3D {
         return this.position.z;
     }
 
-    moveLeft(leftLimit) {
-        var flag = (this.position.x -(Math.tan(this.rotation.y)*distanceCanonWall) ) >= leftLimit
-        if (flag) this.rotateY(angleMovement);
+    moveLeft(leftLimit, delta) {
+        var flag = (this.position.x -(Math.tan(this.rotation.y)*distanceCannonWall) ) >= leftLimit
+        if (flag) this.rotateY(angleMovement*delta);
     }
 
-    moveRight(rightLimit) {
-        var flag = (this.position.x -(Math.tan(this.rotation.y)*distanceCanonWall) ) <= rightLimit
-        if (flag) this.rotateY(-angleMovement);
+    moveRight(rightLimit, delta) {
+        var flag = (this.position.x -(Math.tan(this.rotation.y)*distanceCannonWall) ) <= rightLimit
+        if (flag) this.rotateY(-angleMovement*delta);
     }
 
     changeColor(color){
@@ -67,31 +70,92 @@ class Canon extends THREE.Object3D {
     getRotY() {
         return this.rotation.y;
     }
+
+    getLaunchPosition() {
+        return this.getDirection().multiplyScalar(-cannonLength/2).add(this.position);
+    }
+}
+
+class Ball extends THREE.Object3D {
+    constructor() {
+        super();
+        var geometry = new THREE.SphereGeometry( ballRadius, 16, 16);
+        var material = new THREE.MeshBasicMaterial({ color:0xffffff, wireframe: wireframeOn });
+        materials.push(material);
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.setRotationFromEuler(this.mesh.rotation);
+        this.axis = new THREE.AxesHelper(2*ballRadius);
+        this.axis.visible = showAxis;
+        this.mesh.add(this.axis);
+        this.add(this.mesh);
+    }
+
+    setPosition(x, y, z) {
+        this.position.set(x, y, z);
+    }
+
+    positionIncrease(vector) {
+        this.position.add(vector);
+    }
+
+    setRotationY(rot) {
+        this.rotation.y = rot;
+    }
+
+    increaseRotationX(delta){
+        var rot = this.getVelocityZ() / 10 * delta;
+        this.rotation.x += rot;
+    }
+
+    setVelocity(x, y, z) {
+        this.velocity = new THREE.Vector3(x, y, z);
+    }
+
+    changeVelocityScalar(scalar, delta){
+        this.velocity.multiplyScalar(scalar**delta);
+    }
+
+    getVelocity(){
+        return this.velocity;
+    }
+
+    getVelocityX() {
+        return this.velocity.x;
+    }
+
+    getVelocityZ() {
+        return this.velocity.z;
+    }
+
+    setAxis(value) {
+        this.axis.visible = value;
+    }
+
 }
 
 class Walls extends THREE.Object3D {
     constructor(x, y, z) {
         super();
-        var size = 100;
+        var size = wallLength, heightSize = wallHeight;
         this.position.set(x, y, z-size);
 
         var material = new THREE.MeshBasicMaterial({color: wallsColor, wireframe: true});
         materials.push(material);
-        var geometry = new THREE.BoxGeometry(2, size, 2*size, 8, 8);
+        var geometry = new THREE.BoxGeometry(2, heightSize, 2*size, 8, 8);
 
         //Left wall
         var meshLeft = new THREE.Mesh(geometry, material);
-        meshLeft.position.set(x-size,y+size/2,z);
+        meshLeft.position.set(x-size,y+heightSize/2,z);
         leftLimit = x-size+10;
 
         //Right wall
         var meshRight = new THREE.Mesh(geometry, material);
-        meshRight.position.set(x+size,y+size/2,z);
+        meshRight.position.set(x+size,y+heightSize/2,z);
         rightLimit = x+size-10;
 
         //Center wall
         var meshCenter = new THREE.Mesh(geometry, material);
-        meshCenter.position.set(x,y+size/2,z-size);
+        meshCenter.position.set(x,y+heightSize/2,z-size);
         meshCenter.rotateY(Math.PI/2);
         
         this.add(meshLeft);
@@ -123,53 +187,6 @@ class PerCamera extends THREE.PerspectiveCamera {
     }
 }
 
-class Ball extends THREE.Object3D {
-    constructor() {
-        super();
-        var geometry = new THREE.SphereGeometry(10, 16, 16);
-        var material = new THREE.MeshBasicMaterial({ color:0xffffff, wireframe: wireframeOn });
-        materials.push(material);
-        this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.setRotationFromEuler(this.mesh.rotation);
-        this.axis = new THREE.AxesHelper(20);
-        this.axis.visible = showAxis;
-        this.mesh.add(this.axis);
-        this.add(this.mesh);
-    }
-
-    setPosition(x, y, z) {
-        this.position.set(x, y, z);
-    }
-
-    positionIncrease(vector) {
-        this.position.add(vector);
-    }
-
-    setRotationY(rot) {
-        this.rotation.y = rot;
-    }
-
-    setVelocity(x, y, z) {
-        this.velocity = new THREE.Vector3(x, y, z);
-    }
-
-    getVelocity(){
-        return this.velocity;
-    }
-
-    getVelocityX() {
-        return this.velocity.x;
-    }
-
-    getVelocityZ() {
-        return this.velocity.z;
-    }
-
-    setAxis(value) {
-        this.axis.visible = value;
-    }
-}
-
 function createPerspectiveCamera(){
     'use strict';
 
@@ -181,11 +198,37 @@ function createPerspectiveCamera(){
     camera.lookAt(0,0,0);
 }
 
-function createCanon(x, y, z, angle, tag){
+function createcannon(x, y, z, angle, tag){
     'use strict';
-    var canon = new Canon(x, y, z, angle);
-    canons[tag] = canon;
-    scene.add(canon);
+    var cannon = new Cannon(x, y, z, angle);
+    cannons[tag] = cannon;
+    scene.add(cannon);
+}
+
+function createFieldBalls(numb, coorX, coorZ) {
+    for (var i = 0; i < Math.random() * numb; i++) {
+        var ball = new Ball();
+        var x = Math.random() * coorX;
+        var z = Math.random() * coorZ;
+        var onTop = true
+        while (onTop) {
+            var j = 0;
+            var newBallPos = new THREE.Vector3(x, 10, z);
+            for (j = 0; j < balls.length; j++) {
+                var ballPos = new THREE.Vector3(balls[j].position.x, balls[j].position.y, balls[j].position.z);
+                if (ballPos.distanceTo(newBallPos) < 20) {
+                    x = Math.random() * coorX;
+                    z = Math.random() * coorZ;
+                    break;
+                }
+            }
+
+            if (j == balls.length) onTop = false;
+        }
+        ball.setPosition(x, ballRadius, z);
+        balls.push(ball);
+        scene.add(ball);
+    }
 }
 
 function createWalls(x, y, z){
@@ -200,25 +243,25 @@ function createScene(){
     scene = new THREE.Scene();
     scene.add(new THREE.AxesHelper(100));
 
-    //Plane for help
-    var geometry = new THREE.PlaneGeometry( 200, 400, 10, 10);
+    //Plane for ground
+    var geometry = new THREE.PlaneGeometry( 2*wallLength, 2*wallLength, 10, 10);
     var material = new THREE.MeshBasicMaterial( {color: 0x808080, side: THREE.DoubleSide} ); 
     var plane = new THREE.Mesh( geometry, material );
     plane.rotateX( - Math.PI / 2);
-    plane.position.set(0, 0, 0);
+    plane.position.set(0, 0, -wallLength);
     scene.add( plane );
 
     //Creation of Models
-    createCanon(50, 10, distanceCanonWall, Math.PI/16, "right");
-    createCanon(0, 10, distanceCanonWall, 0, "center");
-    createCanon(-50, 10, distanceCanonWall, -Math.PI/16, "left");
-    selectedCanon = canons["center"];
-    selectedCanon.changeColor(selectedColor);
+    createcannon(50, 0, distanceCannonWall, Math.PI/16, "right");
+    createcannon(0, 0, distanceCannonWall, 0, "center");
+    createcannon(-50, 0, distanceCannonWall, -Math.PI/16, "left");
+    selectedCannon = cannons["center"];
+    selectedCannon.changeColor(selectedColor);
 
     createWalls(0,0,0);
 
-    createFieldBalls(3, rightLimit, -(distanceCanonWall - 10));
-    createFieldBalls(3, leftLimit, -(distanceCanonWall - 10));
+    createFieldBalls(3, rightLimit, -(distanceCannonWall - 10));
+    createFieldBalls(3, leftLimit, -(distanceCannonWall - 10));
 }
 
 function onResize(){
@@ -278,20 +321,20 @@ function onKeyDown(e){
             wireframeOn = !wireframeOn;
             for (let i=0; i<materials.length; i++) materials[i].wireframe = wireframeOn;
             break;
-        case 81: //q - Select left canon
-            selectedCanon.changeColor(canonsColor);
-            selectedCanon = canons["left"];
-            selectedCanon.changeColor(selectedColor);
+        case 81: //q - Select left cannon
+            selectedCannon.changeColor(cannonsColor);
+            selectedCannon = cannons["left"];
+            selectedCannon.changeColor(selectedColor);
             break;
-        case 87: //w - Select center canon
-            selectedCanon.changeColor(canonsColor);
-            selectedCanon = canons["center"];
-            selectedCanon.changeColor(selectedColor);
+        case 87: //w - Select center cannon
+            selectedCannon.changeColor(cannonsColor);
+            selectedCannon = cannons["center"];
+            selectedCannon.changeColor(selectedColor);
             break;
-        case 69: //e - Select right canon
-            selectedCanon.changeColor(canonsColor);
-            selectedCanon = canons["right"];
-            selectedCanon.changeColor(selectedColor);
+        case 69: //e - Select right cannon
+            selectedCannon.changeColor(cannonsColor);
+            selectedCannon = cannons["right"];
+            selectedCannon.changeColor(selectedColor);
             break;
         case 82: //r - show balls axis
             showAxis = !showAxis;
@@ -306,15 +349,16 @@ function onKeyDown(e){
             movementFlags["moveRight"] = 1;
             break;
         case 32: //space bar - shoot a ball
-            if (selectedCanon.canShoot) {
+            if (selectedCannon.canShoot) {
                 var ball = new Ball();
-                ball.setPosition(selectedCanon.getPosX(), selectedCanon.getPosY(), selectedCanon.getPosZ());
-                ball.setRotationY( selectedCanon.getRotY());
+                var pI = selectedCannon.getLaunchPosition();
+                ball.setPosition(pI.x, pI.y, pI.z);
+                ball.setRotationY( selectedCannon.getRotY());
                 var random = 1 + Math.random();
-                ball.setVelocity(-Math.sin(selectedCanon.rotation.y) * random, 0, -Math.cos(selectedCanon.rotation.y) * random);
+                ball.setVelocity(-Math.sin(selectedCannon.rotation.y) * random, 0, -Math.cos(selectedCannon.rotation.y) * random);
                 balls.push(ball);
-                selectedCanon.changeShooting(false);
-                window.setTimeout(function() { canShootAgain(selectedCanon); }, 1000);
+                selectedCannon.changeShooting(false);
+                window.setTimeout(function() { selectedCannon.changeShooting(true); }, 1000);
                 scene.add(ball);
             }
             break;
@@ -340,62 +384,34 @@ function onKeyUp(e){
     }
 }
 
-function canShootAgain(cannon) {
-    cannon.changeShooting(true);
-}
-
-function createFieldBalls(numb, coorX, coorZ) {
-    for (var i = 0; i < Math.random() * numb; i++) {
-        var ball = new Ball();
-        var x = Math.random() * coorX;
-        var z = Math.random() * coorZ;
-        var onTop = true
-        while (onTop) {
-            var j = 0;
-            var newBallPos = new THREE.Vector3(x, 10, z);
-            for (j = 0; j < balls.length; j++) {
-                var ballPos = new THREE.Vector3(balls[j].position.x, balls[j].position.y, balls[j].position.z);
-                if (ballPos.distanceTo(newBallPos) < 20) {
-                    x = Math.random() * coorX;
-                    z = Math.random() * coorZ;
-                    break;
-                }
-            }
-
-            if (j == balls.length) onTop = false;
-        }
-        ball.setPosition(x, 10, z);
-        balls.push(ball);
-        scene.add(ball);
-    }
-}
-
-function updatePosition() {
-    if (movementFlags["moveLeft"]) selectedCanon.moveLeft(leftLimit);
-    if (movementFlags["moveRight"]) selectedCanon.moveRight(rightLimit);
+function updatePosition(delta) {
+    if (movementFlags["moveLeft"]) selectedCannon.moveLeft(leftLimit, delta);
+    if (movementFlags["moveRight"]) selectedCannon.moveRight(rightLimit, delta);
 
     for (var i = 0; i < balls.length ; i++) {
         if(balls[i].getVelocity()) {
             // Update Position
-            balls[i].positionIncrease(balls[i].velocity);
+            balls[i].positionIncrease(balls[i].velocity, delta);
 
             // Update Velocity
-            if (balls[i].getVelocityX()) balls[i].setVelocity(balls[i].getVelocityX() - balls[i].getVelocityX()/500, 0, balls[i].getVelocityZ() - balls[i].getVelocityZ()/500);
-            else balls[i].setVelocity(0, 0, balls[i].getVelocityZ() - balls[i].getVelocityZ()/500);
+            balls[i].changeVelocityScalar(499/500, delta);
 
             // Update rotation
-            if (balls[i].getVelocityZ()) balls[i].rotateX(balls[i].getVelocityZ() / 10);
+            balls[i].increaseRotationX(delta);
         }
     }
 }
 
-function animate(){
+function animate(time){
     'use strict';
+    var delta = (time - timePrev)/10;
+    //console.log(delta);
 
     controls.update();
-    updatePosition();
+    updatePosition(delta);
     render();
 
+    timePrev = time;
     requestAnimationFrame(animate);
 }
 
@@ -409,12 +425,13 @@ function init(){
 
     renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setSize(width, height);
+    renderer.setClearColor(new THREE.Color(backgroundColor))
 
     document.body.appendChild(renderer.domElement);
 
     createScene();
     createPerspectiveCamera();
-    topCamera = new OrtCamera(0, 100, 0, 0, 0, 0);
+    topCamera = new OrtCamera(0, 100, -wallLength, 0, 0, -wallLength);
     lateralCamera = new PerCamera(0, 200, 150, 0, 0, 0);
     frontCamera = new OrtCamera(0, 30, 200, 0, 30, 0);
 
