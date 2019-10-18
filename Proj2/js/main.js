@@ -1,11 +1,11 @@
 var scene, renderer, currCamera, viewSize = 3/4;
-var topCamera, lateralCamera, frontCamera, camera;
+var topCamera, perCamera, ballCamera, camera;
 var controls;
 
 var cannons = [], balls = [], wallSurface;
 var cannonRadius = 5, cannonLength = 50, ballRadius = 5, wallLength = 100, wallHeight = 4*ballRadius;
 
-var wallsColor = 0xff0000, ballsColor = 0xffffff, cannonsColor = 0x00ff00, selectedColor = 0x0000ff, backgroundColor = 0xc6c6c6;
+var wallsColor = 0xff0000, ballsColor = 0xffffff, cannonsColor = 0x00ff00, selectedColor = 0x0000ff, backgroundColor = 0x000000;
 var materials = [], leftLimit, rightLimit, distanceCannonWall = 100;
 var wireframeOn = true, showAxis = true;
 
@@ -96,6 +96,10 @@ class Ball extends THREE.Object3D {
         this.position.set(x, y, z);
     }
 
+    getPosition() {
+        return this.position;
+    }
+
     positionIncrease(delta) {
         var vector = this.velocity.clone().multiplyScalar(delta)
         if (vector.length()) this.position.add(vector);
@@ -103,11 +107,16 @@ class Ball extends THREE.Object3D {
 
     setRotationY(rot) {
         this.rotation.y = rot;
+        this.roty = rot;
+    }
+
+    getRotationY() {
+        return this.roty;
     }
 
     increaseRotationX(delta){
         var rot = this.getVelocity().z / 10 * delta;
-        if (rot) this.rotation.x += rot;
+        if (rot) this.rotateX(rot);
     }
 
     setVelocity(x, y, z) {
@@ -179,6 +188,28 @@ class PerCamera extends THREE.PerspectiveCamera {
         this.position.y = y;
         this.position.z = z;
         this.lookAt(lookx,looky,looz);
+    }
+
+    setCameraPosition(x, y, z) {
+        this.position.x = x;
+        this.position.y = y;
+        this.position.z = z;
+    }
+
+    setFollowingBall(ball) {
+        this.ball = ball;
+    }
+
+    getFollowingBall() {
+        return this.ball;
+    }
+
+    setCameraRotation(value) {
+        this.rotation.y = value;
+    }
+
+    lookAtObject(pos) {
+        this.lookAt(pos);
     }
 }
 
@@ -275,18 +306,18 @@ function onResize(){
         topCamera.updateProjectionMatrix();
         renderer.setSize(width, height);
 
-        lateralCamera.left = width / -2 * viewSize;
-        lateralCamera.right = -topCamera.left;
-        lateralCamera.top = height / 2 * viewSize;
-        lateralCamera.bottom = -topCamera.top;
-        lateralCamera.updateProjectionMatrix();
+        perCamera.left = width / -2 * viewSize;
+        perCamera.right = -topCamera.left;
+        perCamera.top = height / 2 * viewSize;
+        perCamera.bottom = -topCamera.top;
+        perCamera.updateProjectionMatrix();
         renderer.setSize(width, height);
 
-        frontCamera.left = width / -2 * viewSize;
-        frontCamera.right = -topCamera.left;
-        frontCamera.top = height / 2 * viewSize;
-        frontCamera.bottom = -topCamera.top;
-        frontCamera.updateProjectionMatrix();
+        ballCamera.left = width / -2 * viewSize;
+        ballCamera.right = -topCamera.left;
+        ballCamera.top = height / 2 * viewSize;
+        ballCamera.bottom = -topCamera.top;
+        ballCamera.updateProjectionMatrix();
         renderer.setSize(width, height);
     }
 
@@ -305,12 +336,12 @@ function onKeyDown(e){
             currCamera = topCamera;
             break;
         case 50: //2 - Lateral Camera
-            console.log("LateralCamera activates!");
-            currCamera = lateralCamera;
+            console.log("perCamera activates!");
+            currCamera = perCamera;
             break;
         case 51: //3 - Front Camera
-            console.log("FrontalCamera activates!");
-            currCamera = frontCamera;
+            console.log("ballCamera activates!");
+            followBall(ballCamera);
             break;
         case 52: //4 - Wireframe toggle
             wireframeOn = !wireframeOn;
@@ -393,7 +424,33 @@ function updatePosition(delta) {
         // Update rotation
         balls[i].increaseRotationX(delta);
     }
+
+    if (currCamera == ballCamera) {
+        var ball = currCamera.getFollowingBall();
+        var angle = ball.getRotationY();
+        var rotX, rotZ;
+
+        if (angle) {
+            rotX = 30 * Math.sin(angle);
+            rotZ = 30 * Math.cos(angle);
+        }
+        else {
+            rotX = 0;
+            rotZ = 30;
+        }
+
+        currCamera.setCameraPosition(ball.getPosition().x + rotX, ball.getPosition().y + 20, ball.getPosition().z + rotZ);
+        currCamera.lookAtObject(ball.getPosition());
+    }
 }
+
+function followBall(camera) {
+    var random = Math.round(Math.random() * (balls.length - 1));
+    var randomBall = balls[random];
+
+    camera.setFollowingBall(randomBall);
+    currCamera = camera;
+} 
 
 function animate(time){
     'use strict';
@@ -423,9 +480,9 @@ function init(){
 
     createScene();
     createPerspectiveCamera();
-    topCamera = new OrtCamera(0, 100, -wallLength, 0, 0, -wallLength);
-    lateralCamera = new PerCamera(0, 200, 150, 0, 0, 0);
-    frontCamera = new OrtCamera(0, 30, 200, 0, 30, 0);
+    topCamera = new OrtCamera(0, 100, 0, 0, 0, 0);
+    perCamera = new PerCamera(0, 200, 150, 0, 0, 0);
+    ballCamera = new PerCamera(0, 30, 200, 0, 0, 0);
 
 
     currCamera = camera;
