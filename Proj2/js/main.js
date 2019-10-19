@@ -114,7 +114,7 @@ class Ball extends THREE.Object3D {
         return this.roty;
     }
 
-    increaseRotationX(delta){
+    increaseRotationX(delta) {
         var rot = this.getVelocity().z / 10 * delta;
         if (rot) this.rotateX(rot);
     }
@@ -123,18 +123,17 @@ class Ball extends THREE.Object3D {
         this.velocity = new THREE.Vector3(x, y, z);
     }
 
-    changeVelocityScalar(scalar, delta){
+    changeVelocityScalar(scalar, delta) {
         this.velocity.multiplyScalar(scalar**delta);
     }
 
-    getVelocity(){
+    getVelocity() {
         return this.velocity;
     }
 
     setAxis(value) {
         this.axis.visible = value;
     }
-
 }
 
 class Walls extends THREE.Object3D {
@@ -165,7 +164,6 @@ class Walls extends THREE.Object3D {
         this.add(meshLeft);
         this.add(meshRight);
         this.add(meshCenter);
-    
     }
 }
 
@@ -213,7 +211,7 @@ class PerCamera extends THREE.PerspectiveCamera {
     }
 }
 
-function createPerspectiveCamera(){
+function createPerspectiveCamera() {
     'use strict';
 
     camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 1000);
@@ -224,7 +222,7 @@ function createPerspectiveCamera(){
     camera.lookAt(0,0,0);
 }
 
-function createcannon(x, y, z, angle, tag){
+function createcannon(x, y, z, angle, tag) {
     'use strict';
     var cannon = new Cannon(x, y, z, angle);
     cannons[tag] = cannon;
@@ -257,13 +255,13 @@ function createFieldBalls(numb, coorX, coorZ) {
     }
 }
 
-function createWalls(x, y, z){
+function createWalls(x, y, z) {
     'use strict';
     wallSurface = new Walls(x, y, z);
     scene.add(wallSurface);
 }
 
-function createScene(){
+function createScene() {
     'use strict';
 
     scene = new THREE.Scene();
@@ -320,10 +318,9 @@ function onResize(){
         ballCamera.updateProjectionMatrix();
         renderer.setSize(width, height);
     }
-
 }
 
-function onKeyDown(e){
+function onKeyDown(e) {
     'use strict';
 
     switch(e.keyCode){
@@ -389,7 +386,7 @@ function onKeyDown(e){
             }
             break;
         default:
-            console.log(e.keyCode);
+            //console.log(e.keyCode);
             break;
     }
 }
@@ -450,14 +447,30 @@ function followBall(camera) {
 
     camera.setFollowingBall(randomBall);
     currCamera = camera;
-} 
+}
 
-function animate(time){
+function checkLimits() {
+	for (var i = 0; i < balls.length; i++) {
+		for (var j = i + 1; j < balls.length; j++) {
+			if (Math.pow(ballRadius * 2, 2) >= distanceBalls(balls[i], balls[j])) {
+				console.log("Collision detected!")
+			}
+		}
+    }
+}
+
+function distanceBalls(thisBall, otherBall) {
+	return (Math.pow(thisBall.getPosition().x - otherBall.getPosition().x, 2)
+	 + Math.pow(thisBall.getPosition().z - otherBall.getPosition().z, 2))
+}
+
+function animate(time) {
     'use strict';
-    var delta = (time - timePrev)/10;
+    var delta = (time - timePrev) / 10;
 
     controls.update();
     updatePosition(delta);
+    checkLimits();
     render();
 
     timePrev = time;
