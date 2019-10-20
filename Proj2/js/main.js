@@ -288,7 +288,7 @@ function createScene() {
     createFieldBalls(3, leftLimit, -(distanceCannonWall - 10));
 }
 
-function onResize(){
+function onResize() {
     'use strict';
     renderer.setSize(window.innerWidth, window.innerHeight);
     var width = renderer.getSize().width, height = renderer.getSize().height;
@@ -391,7 +391,7 @@ function onKeyDown(e) {
     }
 }
 
-function onKeyUp(e){
+function onKeyUp(e) {
     'use strict';
 
     switch(e.keyCode){
@@ -477,12 +477,12 @@ function animate(time) {
     requestAnimationFrame(animate);
 }
 
-function render(){
+function render() {
     'use strict';
     renderer.render(scene, currCamera);
 }
 
-function init(){
+function init() {
     'use strict';
 
     renderer = new THREE.WebGLRenderer({antialias: true});
