@@ -14,7 +14,7 @@ var width = window.innerWidth, height = window.innerHeight;
 var timePrev = 0;
 var deacceleration = 995/1000;
 
-var movementFlags = {"moveLeft":0, "moveRight":0}, selectedCannon;
+var movementFlags = {"moveLeft":0, "moveRight":0, "shooting": 0}, selectedCannon;
 var angleMovement = Math.PI/180;
 
 class Cannon extends THREE.Object3D {
@@ -388,7 +388,7 @@ function onKeyDown(e) {
             break;
         case 32: //space bar - shoot a ball
             if (selectedCannon.canShoot) {
-                createBall();
+                movementFlags["shooting"] = 1;
             }
             break;
         default:
@@ -406,6 +406,9 @@ function onKeyUp(e) {
             break;
         case 39: // > - Move right
             movementFlags["moveRight"] = 0;
+            break;
+        case 32:
+            movementFlags["shooting"] = 0;
             break;
         default:
             //console.log(e.keyCode);
@@ -429,6 +432,7 @@ function createBall() {
 function updatePosition(delta) {
     if (movementFlags["moveLeft"]) selectedCannon.moveLeft(leftLimit, delta);
     if (movementFlags["moveRight"]) selectedCannon.moveRight(rightLimit, delta);
+    if (movementFlags["shooting"] && selectedCannon.canShoot) createBall();
 
     for (var i = 0; i < balls.length ; i++) {
         var currentBall = balls[i];
@@ -507,8 +511,8 @@ function checkLimits() {
 
 function compute_intersection(fastBall, slowBall) {
     var velocity_aux = fastBall.velocity;
-    fastBall.velocity = slowBall.velocity;
-    slowBall.velocity = velocity_aux;
+    fastBall.setVelocity(slowBall.velocity.x, slowBall.velocity.y, slowBall.velocity.z);
+    slowBall.setVelocity(velocity_aux.x, velocity_aux.y, velocity_aux.z);
 }
 
 function distanceBalls(thisBall, otherBall) {
