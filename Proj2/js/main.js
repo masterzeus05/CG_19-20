@@ -149,12 +149,12 @@ class Walls extends THREE.Object3D {
         //Left wall
         var meshLeft = new THREE.Mesh(geometry, material);
         meshLeft.position.set(x-size,y+heightSize/2,z);
-        leftLimit = x-size+10;
+        leftLimit = x - size;
 
         //Right wall
         var meshRight = new THREE.Mesh(geometry, material);
         meshRight.position.set(x+size,y+heightSize/2,z);
-        rightLimit = x+size-10;
+        rightLimit = x + size;
 
         //Center wall
         var meshCenter = new THREE.Mesh(geometry, material);
@@ -451,6 +451,8 @@ function followBall(camera) {
 
 function checkLimits() {
 	for (var i = 0; i < balls.length; i++) {
+
+        // Check for collision with another ball
 		for (var j = i + 1; j < balls.length; j++) {
 			if (Math.pow(ballRadius * 2, 2) >= distanceBalls(balls[i], balls[j])) {
                 balls[i].velocity == Math.max(balls[i].velocity, balls[j].velocity)
@@ -458,6 +460,26 @@ function checkLimits() {
                 : compute_intersection(balls[j], balls[i])
 			}
 		}
+
+        // Check for collision with a wall
+        if (balls[i].position.x - leftLimit - ballRadius < 0) {
+            console.log("Collision with left wall detected!")
+
+            var velocity = balls[i].getVelocity()
+            balls[i].setVelocity(-velocity.x, velocity.y, velocity.z)
+        }
+        else if (balls[i].position.x - rightLimit + ballRadius > 0) {
+            console.log("Collision with right wall detected!")
+
+            var velocity = balls[i].getVelocity()
+            balls[i].setVelocity(-velocity.x, velocity.y, velocity.z)
+        }
+        else if (balls[i].position.z + 2 * wallLength - ballRadius < 0) {
+            console.log("Collision with center wall detected!")
+
+            var velocity = balls[i].getVelocity()
+            balls[i].setVelocity(velocity.x, velocity.y, -velocity.z)
+        }
     }
 }
 
