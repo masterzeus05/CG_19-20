@@ -453,10 +453,18 @@ function checkLimits() {
 	for (var i = 0; i < balls.length; i++) {
 		for (var j = i + 1; j < balls.length; j++) {
 			if (Math.pow(ballRadius * 2, 2) >= distanceBalls(balls[i], balls[j])) {
-				console.log("Collision detected!")
+                balls[i].velocity == Math.max(balls[i].velocity, balls[j].velocity)
+                ? compute_intersection(balls[i], balls[j])
+                : compute_intersection(balls[j], balls[i])
 			}
 		}
     }
+}
+
+function compute_intersection(fastBall, slowBall) {
+    var velocity_aux = fastBall.velocity
+    fastBall.velocity = slowBall.velocity
+    slowBall.velocity = velocity_aux
 }
 
 function distanceBalls(thisBall, otherBall) {
