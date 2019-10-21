@@ -8,6 +8,7 @@ var cannonRadius = 5, cannonLength = 50, ballRadius = 5, wallLength = 100, wallH
 var wallsColor = 0xff0000, ballsColor = 0xffffff, cannonsColor = 0x00ff00, selectedColor = 0x0000ff, backgroundColor = 0x000000;
 var materials = [], leftLimit, rightLimit, distanceCannonWall = 100;
 var wireframeOn = true, showAxis = true;
+var nullVector = new THREE.Vector3(0, 0, 0);
 
 var width = window.innerWidth, height = window.innerHeight;
 var timePrev = 0;
@@ -89,7 +90,9 @@ class Ball extends THREE.Object3D {
         this.axis.visible = showAxis;
         this.mesh.add(this.axis);
         this.add(this.mesh);
-        this.setVelocity(0,0,0);
+        this.velocity = nullVector;
+        this.canFall = false;
+
     }
 
     setPosition(x, y, z) {
@@ -124,7 +127,11 @@ class Ball extends THREE.Object3D {
     }
 
     changeVelocityScalar(scalar, delta) {
-        this.velocity.multiplyScalar(scalar**delta);
+        if (this.velocity != nullVector) this.velocity.multiplyScalar(scalar**delta);
+        
+        if (Math.abs(this.velocity.x) < 0.1 && Math.abs(this.velocity.z) < 0.1) {
+            this.velocity = nullVector;
+        }
     }
 
     getVelocity() {
@@ -133,6 +140,14 @@ class Ball extends THREE.Object3D {
 
     setAxis(value) {
         this.axis.visible = value;
+    }
+
+    getCanFall() {
+        return this.canFall;
+    }
+
+    setCanFall(value) {
+        this.canFall = value;
     }
 }
 
@@ -284,8 +299,8 @@ function createScene() {
 
     createWalls(0,0,0);
 
-    createFieldBalls(3, rightLimit, -(distanceCannonWall - 10));
-    createFieldBalls(3, leftLimit, -(distanceCannonWall - 10));
+    createFieldBalls(3, rightLimit - ballRadius, -(distanceCannonWall - ballRadius));
+    createFieldBalls(3, leftLimit - ballRadius, -(distanceCannonWall - ballRadius));
 }
 
 function onResize() {
@@ -373,16 +388,7 @@ function onKeyDown(e) {
             break;
         case 32: //space bar - shoot a ball
             if (selectedCannon.canShoot) {
-                var ball = new Ball();
-                var pI = selectedCannon.getLaunchPosition();
-                ball.setPosition(pI.x, pI.y, pI.z);
-                ball.setRotationY( selectedCannon.getRotY());
-                var random = 1 + Math.random();
-                ball.setVelocity(-Math.sin(selectedCannon.rotation.y) * random, 0, -Math.cos(selectedCannon.rotation.y) * random);
-                balls.push(ball);
-                selectedCannon.changeShooting(false);
-                window.setTimeout(function() { selectedCannon.changeShooting(true); }, 1000);
-                scene.add(ball);
+                createBall();
             }
             break;
         default:
@@ -407,19 +413,45 @@ function onKeyUp(e) {
     }
 }
 
+function createBall() {
+    var ball = new Ball();
+    var pI = selectedCannon.getLaunchPosition();
+    ball.setPosition(pI.x, pI.y, pI.z);
+    ball.setRotationY( selectedCannon.getRotY());
+    var random = 1 + Math.random();
+    ball.setVelocity(-Math.sin(selectedCannon.rotation.y) * random, 0, -Math.cos(selectedCannon.rotation.y) * random);
+    balls.push(ball);
+    selectedCannon.changeShooting(false);
+    window.setTimeout(function() { selectedCannon.changeShooting(true); }, 1000);
+    scene.add(ball);
+}
+
 function updatePosition(delta) {
     if (movementFlags["moveLeft"]) selectedCannon.moveLeft(leftLimit, delta);
     if (movementFlags["moveRight"]) selectedCannon.moveRight(rightLimit, delta);
 
     for (var i = 0; i < balls.length ; i++) {
+        var currentBall = balls[i];
+        
+        if (currentBall.getPosition().z <= 0) {
+            currentBall.setCanFall(true);
+        }
+
+        // Check if the ball should be removed
+        if ((currentBall.getPosition().z > 0 && currentBall.getCanFall()) ||
+            (currentBall.getPosition().z > 0 && currentBall.getVelocity() == nullVector)) {
+            scene.remove(currentBall);
+            balls.splice(i, 1);
+        }
+        
         // Update Position
-        balls[i].positionIncrease(delta);
+        currentBall.positionIncrease(delta);
 
         // Update Velocity
-        balls[i].changeVelocityScalar(deacceleration, delta);
+        currentBall.changeVelocityScalar(deacceleration, delta);
 
         // Update rotation
-        balls[i].increaseRotationX(delta);
+        currentBall.increaseRotationX(delta);
     }
 
     if (currCamera == ballCamera) {
@@ -442,10 +474,9 @@ function updatePosition(delta) {
 }
 
 function followBall(camera) {
-    var random = Math.round(Math.random() * (balls.length - 1));
-    var randomBall = balls[random];
+    var ball = balls[balls.length - 1];
 
-    camera.setFollowingBall(randomBall);
+    camera.setFollowingBall(ball);
     currCamera = camera;
 }
 
@@ -457,27 +488,27 @@ function checkLimits() {
 			if (Math.pow(ballRadius * 2, 2) >= distanceBalls(balls[i], balls[j])) {
                 balls[i].velocity == Math.max(balls[i].velocity, balls[j].velocity)
                 ? compute_intersection(balls[i], balls[j])
-                : compute_intersection(balls[j], balls[i])
+                : compute_intersection(balls[j], balls[i]);
 			}
 		}
 
         // Check for collision with a wall
         var velocity = balls[i].getVelocity()
         if (balls[i].position.x - leftLimit - ballRadius < 0)
-            balls[i].setVelocity(-velocity.x, velocity.y, velocity.z)
+            balls[i].setVelocity(-velocity.x, velocity.y, velocity.z);
 
         else if (balls[i].position.x - rightLimit + ballRadius > 0)
-            balls[i].setVelocity(-velocity.x, velocity.y, velocity.z)
+            balls[i].setVelocity(-velocity.x, velocity.y, velocity.z);
 
         else if (balls[i].position.z + 2 * wallLength - ballRadius < 0)
-            balls[i].setVelocity(velocity.x, velocity.y, -velocity.z)
+            balls[i].setVelocity(velocity.x, velocity.y, -velocity.z);
     }
 }
 
 function compute_intersection(fastBall, slowBall) {
-    var velocity_aux = fastBall.velocity
-    fastBall.velocity = slowBall.velocity
-    slowBall.velocity = velocity_aux
+    var velocity_aux = fastBall.velocity;
+    fastBall.velocity = slowBall.velocity;
+    slowBall.velocity = velocity_aux;
 }
 
 function distanceBalls(thisBall, otherBall) {
