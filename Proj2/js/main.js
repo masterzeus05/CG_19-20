@@ -462,24 +462,15 @@ function checkLimits() {
 		}
 
         // Check for collision with a wall
-        if (balls[i].position.x - leftLimit - ballRadius < 0) {
-            console.log("Collision with left wall detected!")
-
-            var velocity = balls[i].getVelocity()
+        var velocity = balls[i].getVelocity()
+        if (balls[i].position.x - leftLimit - ballRadius < 0)
             balls[i].setVelocity(-velocity.x, velocity.y, velocity.z)
-        }
-        else if (balls[i].position.x - rightLimit + ballRadius > 0) {
-            console.log("Collision with right wall detected!")
 
-            var velocity = balls[i].getVelocity()
+        else if (balls[i].position.x - rightLimit + ballRadius > 0)
             balls[i].setVelocity(-velocity.x, velocity.y, velocity.z)
-        }
-        else if (balls[i].position.z + 2 * wallLength - ballRadius < 0) {
-            console.log("Collision with center wall detected!")
 
-            var velocity = balls[i].getVelocity()
+        else if (balls[i].position.z + 2 * wallLength - ballRadius < 0)
             balls[i].setVelocity(velocity.x, velocity.y, -velocity.z)
-        }
     }
 }
 
