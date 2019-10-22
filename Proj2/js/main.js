@@ -14,6 +14,8 @@ var width = window.innerWidth, height = window.innerHeight;
 var timePrev = 0;
 var deacceleration = 995/1000;
 
+let COR = 0.6, stopVelocity = 0.001
+
 var movementFlags = {"moveLeft":0, "moveRight":0, "shooting": 0}, selectedCannon;
 var angleMovement = Math.PI/180;
 
@@ -129,7 +131,8 @@ class Ball extends THREE.Object3D {
     changeVelocityScalar(scalar, delta) {
         if (this.velocity != nullVector) this.velocity.multiplyScalar(scalar**delta);
         
-        if (Math.abs(this.velocity.x) < 0.1 && Math.abs(this.velocity.z) < 0.1) {
+        if (Math.abs(this.velocity.x) < stopVelocity 
+            && Math.abs(this.velocity.z) < stopVelocity) {
             this.velocity = nullVector;
         }
     }
@@ -300,7 +303,7 @@ function createScene() {
     createWalls(0,0,0);
 
     createFieldBalls(3, rightLimit - ballRadius, -(distanceCannonWall - ballRadius));
-    createFieldBalls(3, leftLimit - ballRadius, -(distanceCannonWall - ballRadius));
+    createFieldBalls(3, leftLimit + ballRadius, -(distanceCannonWall - ballRadius));
 }
 
 function onResize() {
@@ -340,19 +343,19 @@ function onKeyDown(e) {
 
     switch(e.keyCode){
         case 48: //0 - Default Camera
-            console.log("Default camera activates!");
+            //console.log("Default camera activates!");
             currCamera = camera;
             break;
         case 49: //1 - Top Camera
-            console.log("TopCamera activates!");
+            //console.log("TopCamera activates!");
             currCamera = topCamera;
             break;
         case 50: //2 - Lateral Camera
-            console.log("perCamera activates!");
+            //console.log("perCamera activates!");
             currCamera = perCamera;
             break;
         case 51: //3 - Front Camera
-            console.log("ballCamera activates!");
+            //console.log("ballCamera activates!");
             followBall(ballCamera);
             break;
         case 52: //4 - Wireframe toggle
@@ -420,12 +423,13 @@ function createBall() {
     var ball = new Ball();
     var pI = selectedCannon.getLaunchPosition();
     ball.setPosition(pI.x, pI.y, pI.z);
-    ball.setRotationY( selectedCannon.getRotY());
-    var random = 1 + Math.random();
+    ball.setRotationY(selectedCannon.getRotY());
+    var random = 2 + Math.random();
     ball.setVelocity(-Math.sin(selectedCannon.rotation.y) * random, 0, -Math.cos(selectedCannon.rotation.y) * random);
     balls.push(ball);
     selectedCannon.changeShooting(false);
-    window.setTimeout(function() { selectedCannon.changeShooting(true); }, 1000);
+    var cannonToChange = selectedCannon;
+	window.setTimeout(function() { cannonToChange.changeShooting(true) }, 500);
     scene.add(ball);
 }
 
@@ -486,33 +490,90 @@ function followBall(camera) {
 
 function checkLimits() {
 	for (var i = 0; i < balls.length; i++) {
+        var velocity = balls[i].getVelocity()
+        var position = balls[i].getPosition()
 
         // Check for collision with another ball
 		for (var j = i + 1; j < balls.length; j++) {
-			if (Math.pow(ballRadius * 2, 2) >= distanceBalls(balls[i], balls[j])) {
-                balls[i].velocity == Math.max(balls[i].velocity, balls[j].velocity)
-                ? compute_intersection(balls[i], balls[j])
-                : compute_intersection(balls[j], balls[i]);
+            var mag = Math.pow(ballRadius * 2, 2) - distanceBalls(balls[i], balls[j])
+			if (mag >= 0) {
+                velocity == Math.max(velocity, balls[j].getVelocity())
+                ? compute_Ballintersection(mag, balls[i], balls[j])
+                : compute_Ballintersection(mag, balls[j], balls[i]);
 			}
 		}
 
         // Check for collision with a wall
-        var velocity = balls[i].getVelocity()
-        if (balls[i].position.x - leftLimit - ballRadius < 0)
-            balls[i].setVelocity(-velocity.x, velocity.y, velocity.z);
+        var d
+        if ((d = position.x - leftLimit - ballRadius) < 0) {
+            // Left wall collision
+            balls[i].setVelocity(-velocity.x * COR, velocity.y, velocity.z)
+            balls[i].setPosition(position.x - d, position.y, position.z)
+        }
 
-        else if (balls[i].position.x - rightLimit + ballRadius > 0)
-            balls[i].setVelocity(-velocity.x, velocity.y, velocity.z);
+        else if ((d = position.x - rightLimit + ballRadius) > 0) {
+            // Right wall collision
+            balls[i].setVelocity(-velocity.x * COR, velocity.y, velocity.z)
+            balls[i].setPosition(position.x - d, position.y, position.z)
+        }
 
-        else if (balls[i].position.z + 2 * wallLength - ballRadius < 0)
-            balls[i].setVelocity(velocity.x, velocity.y, -velocity.z);
+        else if ((d = position.z + 2 * wallLength - ballRadius) < 0) {
+            // Center wall collision
+            balls[i].setVelocity(velocity.x, velocity.y, -velocity.z * COR)
+            balls[i].setPosition(position.x, position.y, position.z - d)
+        }
     }
 }
 
-function compute_intersection(fastBall, slowBall) {
-    var velocity_aux = fastBall.velocity;
-    fastBall.setVelocity(slowBall.velocity.x, slowBall.velocity.y, slowBall.velocity.z);
-    slowBall.setVelocity(velocity_aux.x, velocity_aux.y, velocity_aux.z);
+function collisionAngle(ball1, ball2) {
+    return Math.atan2(ball2.position.z - ball1.position.z, 
+        ball2.position.x - ball1.position.x)
+}
+
+function compute_Ballintersection(mag, fastBall, slowBall) {
+
+    // Calculate new position
+
+    var d = Math.sqrt(mag) / 2
+    var angle = collisionAngle(fastBall, slowBall)
+    var x = d * Math.cos(angle)
+    var z = d * Math.sin(angle)
+
+    slowBall.setPosition(
+        slowBall.position.x + x,
+        slowBall.position.y,
+        slowBall.position.z + z
+    )
+
+    fastBall.setPosition(
+        fastBall.position.x - x,
+        fastBall.position.y,
+        fastBall.position.z - z
+    )
+
+    // TODO verify new position
+
+    // Calculate new velocities
+
+    var fastBallVelocity = fastBall.getVelocity()
+    var slowBallVelocity = slowBall.getVelocity()
+
+    var velocity = Math.sqrt(
+        Math.pow(fastBallVelocity.x, 2)
+        + Math.pow(fastBallVelocity.y, 2)
+        + Math.pow(fastBallVelocity.z, 2)
+    )
+
+    var finalVelocityA = [0, 0, 0]
+    finalVelocityA[0] = (COR * (slowBallVelocity.x - fastBallVelocity.x)
+        + fastBallVelocity.x + slowBallVelocity.x) / 2
+    finalVelocityA[2] = (COR * (slowBallVelocity.z - fastBallVelocity.z)
+        + fastBallVelocity.z + slowBallVelocity.z) / 2
+
+    var finalVelocityB = [velocity * Math.cos(angle), 0, velocity * Math.sin(angle)]
+
+    fastBall.setVelocity(finalVelocityA[0], finalVelocityA[1], finalVelocityA[2])
+    slowBall.setVelocity(finalVelocityB[0], finalVelocityB[1], finalVelocityB[2])
 }
 
 function distanceBalls(thisBall, otherBall) {
