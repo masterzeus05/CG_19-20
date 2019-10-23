@@ -124,14 +124,19 @@ class Ball extends THREE.Object3D {
         if (rot) this.rotateX(rot);
     }
 
+    increaseRotationZ(delta) {
+        var rot = this.getVelocity().z / 10 * delta;
+        if (rot) this.rotateZ(rot);
+    }
+
     setVelocity(x, y, z) {
         this.velocity = new THREE.Vector3(x, y, z);
     }
 
     changeVelocityScalar(scalar, delta) {
         if (this.velocity != nullVector) this.velocity.multiplyScalar(scalar**delta);
-        
-        if (Math.abs(this.velocity.x) < stopVelocity 
+
+        if (Math.abs(this.velocity.x) < stopVelocity
             && Math.abs(this.velocity.z) < stopVelocity) {
             this.velocity = nullVector;
         }
@@ -178,7 +183,7 @@ class Walls extends THREE.Object3D {
         var meshCenter = new THREE.Mesh(geometry, material);
         meshCenter.position.set(x,y+heightSize/2,z-size);
         meshCenter.rotateY(Math.PI/2);
-        
+
         this.add(meshLeft);
         this.add(meshRight);
         this.add(meshCenter);
@@ -287,7 +292,7 @@ function createScene() {
 
     //Plane for ground
     var geometry = new THREE.PlaneGeometry( 2*wallLength, 2*wallLength, 10, 10);
-    var material = new THREE.MeshBasicMaterial( {color: 0x808080, side: THREE.DoubleSide} ); 
+    var material = new THREE.MeshBasicMaterial( {color: 0x808080, side: THREE.DoubleSide} );
     var plane = new THREE.Mesh( geometry, material );
     plane.rotateX( - Math.PI / 2);
     plane.position.set(0, 0, -wallLength);
@@ -423,9 +428,12 @@ function createBall() {
     var ball = new Ball();
     var pI = selectedCannon.getLaunchPosition();
     ball.setPosition(pI.x, pI.y, pI.z);
-    ball.setRotationY(selectedCannon.getRotY());
     var random = 2 + Math.random();
     ball.setVelocity(-Math.sin(selectedCannon.rotation.y) * random, 0, -Math.cos(selectedCannon.rotation.y) * random);
+
+    var rotY = Math.acos(ball.getVelocity().x/ball.getVelocity().length());
+    ball.setRotationY(rotY);
+
     balls.push(ball);
     selectedCannon.changeShooting(false);
     var cannonToChange = selectedCannon;
@@ -440,7 +448,7 @@ function updatePosition(delta) {
 
     for (var i = 0; i < balls.length ; i++) {
         var currentBall = balls[i];
-        
+
         if (currentBall.getPosition().z <= 0) {
             currentBall.setCanFall(true);
         }
@@ -451,7 +459,7 @@ function updatePosition(delta) {
             scene.remove(currentBall);
             balls.splice(i, 1);
         }
-        
+
         // Update Position
         currentBall.positionIncrease(delta);
 
@@ -459,7 +467,7 @@ function updatePosition(delta) {
         currentBall.changeVelocityScalar(deacceleration, delta);
 
         // Update rotation
-        currentBall.increaseRotationX(delta);
+        currentBall.increaseRotationZ(delta);
     }
 
     if (currCamera == ballCamera) {
@@ -490,16 +498,17 @@ function followBall(camera) {
 
 function checkLimits() {
 	for (var i = 0; i < balls.length; i++) {
-        var velocity = balls[i].getVelocity()
-        var position = balls[i].getPosition()
+        var currentBall = balls[i];
+        var velocity = currentBall.getVelocity()
+        var position = currentBall.getPosition()
 
         // Check for collision with another ball
 		for (var j = i + 1; j < balls.length; j++) {
-            var mag = Math.pow(ballRadius * 2, 2) - distanceBalls(balls[i], balls[j])
+            var mag = Math.pow(ballRadius * 2, 2) - distanceBalls(currentBall, balls[j])
 			if (mag >= 0) {
                 velocity == Math.max(velocity, balls[j].getVelocity())
-                ? compute_Ballintersection(mag, balls[i], balls[j])
-                : compute_Ballintersection(mag, balls[j], balls[i]);
+                ? compute_Ballintersection(mag, currentBall, balls[j])
+                : compute_Ballintersection(mag, balls[j], currentBall);
 			}
 		}
 
@@ -507,26 +516,33 @@ function checkLimits() {
         var d
         if ((d = position.x - leftLimit - ballRadius) < 0) {
             // Left wall collision
-            balls[i].setVelocity(-velocity.x * COR, velocity.y, velocity.z)
-            balls[i].setPosition(position.x - d, position.y, position.z)
+            currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
+            currentBall.setPosition(position.x - d, position.y, position.z)
+            var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
+            currentBall.setRotationY(rotY + Math.PI / 2);
         }
 
         else if ((d = position.x - rightLimit + ballRadius) > 0) {
             // Right wall collision
-            balls[i].setVelocity(-velocity.x * COR, velocity.y, velocity.z)
-            balls[i].setPosition(position.x - d, position.y, position.z)
+            currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
+            currentBall.setPosition(position.x - d, position.y, position.z)
+            var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
+            currentBall.setRotationY(rotY);
         }
 
         else if ((d = position.z + 2 * wallLength - ballRadius) < 0) {
             // Center wall collision
-            balls[i].setVelocity(velocity.x, velocity.y, -velocity.z * COR)
-            balls[i].setPosition(position.x, position.y, position.z - d)
+            currentBall.setVelocity(velocity.x, velocity.y, -velocity.z * COR)
+            currentBall.setPosition(position.x, position.y, position.z - d)
+            var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
+            if (currentBall.getVelocity().x > 0) currentBall.setRotationY(-rotY + Math.PI);
+            else currentBall.setRotationY(rotY);
         }
     }
 }
 
 function collisionAngle(ball1, ball2) {
-    return Math.atan2(ball2.position.z - ball1.position.z, 
+    return Math.atan2(ball2.position.z - ball1.position.z,
         ball2.position.x - ball1.position.x)
 }
 
