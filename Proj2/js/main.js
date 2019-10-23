@@ -120,7 +120,10 @@ class Ball extends THREE.Object3D {
 
     setRotationY(rot) {
         this.rotation.y = rot;
-        this.roty = rot;
+    }
+
+    saveRealRotY(value) {
+        this.roty = value;
     }
 
     getRotationY() {
@@ -452,6 +455,9 @@ function createBall() {
 
     var rotY = Math.acos(ball.getVelocity().x/ball.getVelocity().length());
     ball.setRotationY(rotY);
+    if (rotY > Math.PI / 2) rotY = rotY - Math.PI / 2;
+    else rotY = -(Math.PI / 2 - rotY);
+    ball.saveRealRotY(rotY);
 
     balls.push(ball);
     selectedCannon.changeShooting(false);
@@ -495,6 +501,7 @@ function updatePosition(delta) {
         var rotX, rotZ;
 
         if (angle) {
+            console.log(angle * 180 / Math.PI);
             rotX = 30 * Math.sin(angle);
             rotZ = 30 * Math.cos(angle);
         }
@@ -538,7 +545,8 @@ function checkLimits() {
             currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
             currentBall.setPosition(position.x - d, position.y, position.z)
             var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
-            currentBall.setRotationY(rotY + Math.PI / 2);
+            currentBall.setRotationY(Math.PI -rotY);
+            currentBall.saveRealRotY(rotY - Math.PI / 2);
         }
 
         else if ((d = position.x - rightLimit + ballRadius) > 0) {
@@ -547,6 +555,7 @@ function checkLimits() {
             currentBall.setPosition(position.x - d, position.y, position.z)
             var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
             currentBall.setRotationY(rotY);
+            currentBall.saveRealRotY(rotY - Math.PI / 2);
         }
 
         else if ((d = position.z + 2 * wallLength - ballRadius) < 0) {
@@ -556,6 +565,7 @@ function checkLimits() {
             var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
             if (currentBall.getVelocity().x > 0) currentBall.setRotationY(-rotY + Math.PI);
             else currentBall.setRotationY(rotY);
+            currentBall.saveRealRotY(-rotY - Math.PI / 2);
         }
     }
 }
