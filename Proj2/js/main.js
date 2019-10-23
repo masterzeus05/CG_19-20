@@ -17,7 +17,7 @@ var deacceleration = 995/1000;
 let COR = 0.6, stopVelocity = 0.001
 
 var movementFlags = {"moveLeft":0, "moveRight":0, "shooting": 0}, selectedCannon;
-var angleMovement = Math.PI/180;
+var angleMovement = Math.PI/360;
 
 class Cannon extends THREE.Object3D {
     constructor(x, y, z, angle) {
@@ -28,17 +28,17 @@ class Cannon extends THREE.Object3D {
         var material = new THREE.MeshBasicMaterial({color: cannonsColor, wireframe: true});
         materials.push(material);
         var mesh = new THREE.Mesh(geometry, material);
-        mesh.rotateX(-Math.PI/2);
         this.add(mesh);
+        mesh.rotateX(-Math.PI/2);
         this.rotateY(angle);
         this.mesh = mesh;
         this.canShoot = true;
+        this._direction = new THREE.Vector3(Math.sin(this.rotation.y),0,1);
+
     }
 
     getDirection(){
-        var direction = new THREE.Vector3();
-        this.getWorldDirection(direction);
-        return direction;
+        return new THREE.Vector3(this._direction.x, this._direction.y, this._direction.z)
     }
 
     getPosX() {
@@ -54,13 +54,21 @@ class Cannon extends THREE.Object3D {
     }
 
     moveLeft(leftLimit, delta) {
-        var flag = (this.position.x -(Math.tan(this.rotation.y)*distanceCannonWall) ) >= leftLimit
-        if (flag) this.rotateY(angleMovement*delta);
+        var aux = angleMovement*delta;
+        var flag = (this.position.x -(Math.tan(this.rotation.y+aux)*distanceCannonWall) ) >= leftLimit
+        if (flag) {
+            this.rotateY(aux);
+            this._direction.set(Math.sin(this.rotation.y+aux), 0, Math.cos(this.rotation.y));
+        }
     }
 
     moveRight(rightLimit, delta) {
-        var flag = (this.position.x -(Math.tan(this.rotation.y)*distanceCannonWall) ) <= rightLimit
-        if (flag) this.rotateY(-angleMovement*delta);
+        var aux = -angleMovement*delta;
+        var flag = (this.position.x -(Math.tan(this.rotation.y+aux)*distanceCannonWall) ) <= rightLimit
+        if (flag) {
+            this.rotateY(aux);
+            this._direction.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
+        }
     }
 
     changeColor(color){
@@ -440,7 +448,7 @@ function createBall() {
     var pI = selectedCannon.getLaunchPosition();
     ball.setPosition(pI.x, pI.y, pI.z);
     var random = 2 + Math.random();
-    ball.setVelocity(-Math.sin(selectedCannon.rotation.y) * random, 0, -Math.cos(selectedCannon.rotation.y) * random);
+    ball.setVelocity(-Math.sin(selectedCannon.getRotY()) * random, 0, -Math.cos(selectedCannon.getRotY()) * random);
 
     var rotY = Math.acos(ball.getVelocity().x/ball.getVelocity().length());
     ball.setRotationY(rotY);
