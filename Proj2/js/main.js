@@ -1,4 +1,4 @@
-var scene, renderer, currCamera, viewSize = 3/4;
+var scene, renderer, currCamera, viewSize = 4/5;
 var topCamera, perCamera, ballCamera, camera;
 var controls;
 
@@ -10,7 +10,7 @@ var materials = [], leftLimit, rightLimit, distanceCannonWall = 100;
 var wireframeOn = true, showAxis = true;
 var nullVector = new THREE.Vector3(0, 0, 0);
 
-var width = window.innerWidth, height = window.innerHeight;
+var width = window.innerWidth, height = window.innerHeight, oldWidth = width, oldHeight = height;
 var timePrev = 0;
 var deacceleration = 995/1000;
 
@@ -314,9 +314,22 @@ function createScene() {
 function onResize() {
     'use strict';
     renderer.setSize(window.innerWidth, window.innerHeight);
-    var width = renderer.getSize().width, height = renderer.getSize().height;
+    var windowVector = new THREE.Vector3(0,0,0);
+    renderer.getSize(windowVector);
+    width = windowVector.x, height = windowVector.y;
+    var angle = oldWidth/oldHeight;
 
     if (window.innerHeight > 0 && window.innerWidth > 0){
+    
+        if (width != oldWidth) {
+            if (width>oldWidth) viewSize /= (1.01**angle);
+            else viewSize *= (1.01**angle);
+        }
+
+        if (height != oldHeight) {
+            if (height>oldHeight) viewSize /= (1.01**angle);
+            else viewSize *= (1.01**angle);
+        }
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
 
@@ -325,22 +338,20 @@ function onResize() {
         topCamera.top = height / 2 * viewSize;
         topCamera.bottom = -topCamera.top;
         topCamera.updateProjectionMatrix();
-        renderer.setSize(width, height);
 
-        perCamera.left = width / -2 * viewSize;
-        perCamera.right = -topCamera.left;
-        perCamera.top = height / 2 * viewSize;
-        perCamera.bottom = -topCamera.top;
+        if (width > oldWidth) perCamera.fov -= Math.atan(angle);
+        else if (width < oldWidth) perCamera.fov += Math.atan(angle);
+        perCamera.aspect = width / height;
         perCamera.updateProjectionMatrix();
-        renderer.setSize(width, height);
 
-        ballCamera.left = width / -2 * viewSize;
-        ballCamera.right = -topCamera.left;
-        ballCamera.top = height / 2 * viewSize;
-        ballCamera.bottom = -topCamera.top;
+
+        if (width > oldWidth) ballCamera.fov -= Math.atan(angle);
+        else if (width < oldWidth) ballCamera.fov += Math.atan(angle);
+        ballCamera.aspect = width / height;
         ballCamera.updateProjectionMatrix();
         renderer.setSize(width, height);
     }
+    oldWidth = width; oldHeight = height;
 }
 
 function onKeyDown(e) {
