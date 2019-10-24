@@ -112,14 +112,14 @@ class Ball extends THREE.Object3D {
     }
 
     increaseRotation(delta) {
-        var rot = Math.abs(this.getVelocity().length()) / ballRadius * delta;
-        if (rot) this.mesh.rotateX(-rot);
+        var rot = Math.abs(this.getVelocity().length()) / (ballRadius*2) * delta;
+        if (rot) this.mesh.rotateX(rot);
     }
 
     setVelocity(x, y, z) {
         this.velocity = new THREE.Vector3(x, y, z);
         this._direction = this.velocity.clone().normalize();
-        this.angle = getAngle(this._direction);		        //this.rotation.y = Math.acos(this._direction.x)
+        this.angle = getAngle(this._direction);
         this.rotation.y = (this.angle);
     }
 
@@ -588,7 +588,7 @@ function distanceBalls(thisBall, otherBall) {
 }
 
 function getAngle(vector){
-    var x = -vector.x, z = -vector.z;
+    var x = vector.x, z = vector.z;
     return Math.atan2(x, z);
 }
 
