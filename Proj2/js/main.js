@@ -482,10 +482,8 @@ function checkLimits() {
         // Check for collision with another ball
 		for (var j = i + 1; j < balls.length; j++) {
             var mag = (ballRadius * 2) ** 2 - distanceBalls(currentBall, balls[j])
-			if (mag >= 0) {
+			if (mag >= 0)
                 computeBallIntersection(mag, currentBall, balls[j])
-                checkLimits()
-            }
         }
         
         velocity = currentBall.getVelocity()		
@@ -496,21 +494,18 @@ function checkLimits() {
             // Left wall collision
             currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
             currentBall.setPosition(position.x - d, position.y, position.z)
-            checkLimits()
         }
 
         else if ((d = position.x - rightLimit + ballRadius) > 0) {
             // Right wall collision
             currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
             currentBall.setPosition(position.x - d, position.y, position.z)
-            checkLimits()
         }
 
         else if ((d = position.z + 2 * wallLength - ballRadius) < 0) {
             // Center wall collision
             currentBall.setVelocity(velocity.x, velocity.y, -velocity.z * COR)
             currentBall.setPosition(position.x, position.y, position.z - d)
-            checkLimits()
         }
     }
 }
@@ -536,8 +531,8 @@ function computeBallIntersection(overlapMagnitude, b1, b2) {
     var aux16 = aux12.multiplyScalar(aux15)
     var aux26 = aux22.multiplyScalar(aux25)
 
-    var v1f = v1.sub(aux16);
-    var v2f = v2.sub(aux26);
+    var v1f = v1.sub(aux16).multiplyScalar(COR);
+    var v2f = v2.sub(aux26).multiplyScalar(COR);
 
     b1.setVelocity(v1f.x, v1f.y, v1f.z);
     b2.setVelocity(v2f.x, v2f.y, v2f.z);
@@ -555,6 +550,38 @@ function computeBallIntersection(overlapMagnitude, b1, b2) {
     displacement = b2.getVelocity().normalize().multiplyScalar(d)
     position = b2.getPosition().add(displacement)
     b2.setPosition(position.x, position.y, position.z)
+
+    var foundNewPosition = true;
+    do {
+        for (var i = 0; i < balls.length; i++) {
+            var currentBall = balls[i];
+            var mag = (ballRadius * 2) ** 2 - distanceBalls(currentBall, b1);
+            if (mag >= 0 && currentBall != b1) {
+                foundNewPosition = false;
+                displacement = b1.getVelocity().normalize().multiplyScalar(d)
+                position = b1.getPosition().add(displacement)
+                b1.setPosition(position.x, position.y, position.z)
+                break
+            }
+        }
+        if (i == balls.length) foundNewPosition = true;
+    } while(!foundNewPosition);
+
+    foundNewPosition = true;
+    do {
+        for (var i = 0; i < balls.length; i++) {
+            var currentBall = balls[i];
+            var mag = (ballRadius * 2) ** 2 - distanceBalls(currentBall, b2);
+            if (mag >= 0 && currentBall != b2) {
+                foundNewPosition = false;
+                displacement = b2.getVelocity().normalize().multiplyScalar(d)
+                position = b2.getPosition().add(displacement)
+                b2.setPosition(position.x, position.y, position.z)
+                break
+            }
+        }
+        if (i == balls.length) foundNewPosition = true;
+    } while(!foundNewPosition);
 }
 
 // Core functions
@@ -562,7 +589,6 @@ function computeBallIntersection(overlapMagnitude, b1, b2) {
 function animate(time) {
     'use strict';
     var delta = (time - timePrev) / 10;
-    console.log(time)
 
     controls.update();
     updatePosition(delta);
