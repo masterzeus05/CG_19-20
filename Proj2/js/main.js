@@ -546,7 +546,8 @@ function checkLimits() {
             currentBall.setPosition(position.x - d, position.y, position.z)
             var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
             currentBall.setRotationY(Math.PI -rotY);
-            currentBall.saveRealRotY(rotY - Math.PI / 2);
+            if (currentBall.getVelocity().z < 0) currentBall.saveRealRotY(rotY - Math.PI / 2);
+            else currentBall.saveRealRotY(-rotY - Math.PI / 2);
         }
 
         else if ((d = position.x - rightLimit + ballRadius) > 0) {
@@ -555,7 +556,8 @@ function checkLimits() {
             currentBall.setPosition(position.x - d, position.y, position.z)
             var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
             currentBall.setRotationY(rotY);
-            currentBall.saveRealRotY(rotY - Math.PI / 2);
+            if (currentBall.getVelocity().z < 0) currentBall.saveRealRotY(rotY - Math.PI / 2);
+            else currentBall.saveRealRotY(-rotY - Math.PI / 2)
         }
 
         else if ((d = position.z + 2 * wallLength - ballRadius) < 0) {
@@ -581,6 +583,7 @@ function compute_Ballintersection(mag, fastBall, slowBall) {
 
     var d = Math.sqrt(mag) / 2
     var angle = collisionAngle(fastBall, slowBall)
+    console.log("angle: " + angle);
     var x = d * Math.cos(angle)
     var z = d * Math.sin(angle)
 
@@ -603,11 +606,7 @@ function compute_Ballintersection(mag, fastBall, slowBall) {
     var fastBallVelocity = fastBall.getVelocity()
     var slowBallVelocity = slowBall.getVelocity()
 
-    var velocity = Math.sqrt(
-        Math.pow(fastBallVelocity.x, 2)
-        + Math.pow(fastBallVelocity.y, 2)
-        + Math.pow(fastBallVelocity.z, 2)
-    )
+    var velocity = fastBallVelocity.length()
 
     var finalVelocityA = [0, 0, 0]
     finalVelocityA[0] = (COR * (slowBallVelocity.x - fastBallVelocity.x)
@@ -619,6 +618,26 @@ function compute_Ballintersection(mag, fastBall, slowBall) {
 
     fastBall.setVelocity(finalVelocityA[0], finalVelocityA[1], finalVelocityA[2])
     slowBall.setVelocity(finalVelocityB[0], finalVelocityB[1], finalVelocityB[2])
+
+    if (slowBall.getVelocity().length() != 0) {
+        var rotY = Math.acos(slowBall.getVelocity().x/slowBall.getVelocity().length());
+        if (slowBall.getVelocity().z > 0) rotY = -rotY;
+        slowBall.setRotationY(rotY);
+        console.log("slowball: " + rotY * 180 / Math.PI);
+
+        slowBall.setRotationY(rotY);
+        console.log("x: " + slowBall.getVelocity().x + " z: " + slowBall.getVelocity().z);
+    }
+
+    if (fastBall.getVelocity().length() != 0) {
+        var rotY = Math.acos(fastBall.getVelocity().x/fastBall.getVelocity().length());
+        if (fastBall.getVelocity().z > 0) rotY = -rotY
+        
+        fastBall.setRotationY(rotY);
+        console.log("fastball: " + rotY * 180 / Math.PI);
+        
+        console.log("x: " + fastBall.getVelocity().x + " z: " + fastBall.getVelocity().z);
+    }
 }
 
 function distanceBalls(thisBall, otherBall) {
@@ -656,7 +675,7 @@ function init() {
     createScene();
     createPerspectiveCamera();
     topCamera = new OrtCamera(0, 100, 0, 0, 0, 0);
-    perCamera = new PerCamera(0, 200, 150, 0, 0, 0);
+    perCamera = new PerCamera(0, 200, 100, 0, 0, 0);
     ballCamera = new PerCamera(0, 30, 200, 0, 0, 0);
 
 
