@@ -506,23 +506,19 @@ function followBall(camera) {
 
 function checkLimits() {
 	for (var i = 0; i < balls.length; i++) {
-        var currentBall = balls[i];
+        var d, currentBall = balls[i];
         var velocity = currentBall.getVelocity()
         var position = currentBall.getPosition()
 
         // Check for collision with another ball
 		for (var j = i + 1; j < balls.length; j++) {
-            var mag = Math.pow(ballRadius * 2, 2) - distanceBalls(currentBall, balls[j])
+            var mag = (ballRadius * 2) ** 2 - distanceBalls(currentBall, balls[j])
 			if (mag >= 0) {
-                velocity == Math.max(velocity, balls[j].getVelocity())
-                ? compute_Ballintersection(mag, currentBall, balls[j])
-                : compute_Ballintersection(mag, balls[j], currentBall);
+                compute_Ballintersection(mag, currentBall, balls[j])
 			}
-
 		}
 
         // Check for collision with a wall
-        var d
         if ((d = position.x - leftLimit - ballRadius) < 0) {
             // Left wall collision
             currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
@@ -544,47 +540,57 @@ function checkLimits() {
 }
 
 function collisionAngle(ball1, ball2) {
-    // return Math.atan2(ball2.position.z - ball1.position.z,
-    //     ball2.position.x - ball1.position.x)
-    return Math.acos( ball1._direction.dot(ball2._direction) );
+    return Math.acos(ball1._direction.dot(ball2._direction))
 }
 
-function compute_Ballintersection(mag, b1, b2) {
+function compute_Ballintersection(overlapMagnitude, b1, b2) {
 
-    // Calculate new positions
-    var d = Math.sqrt(mag) / 2
-    var angle = collisionAngle(b1, b2)
-    console.log(angle*180/Math.PI)
-    var x = d * Math.cos(angle)
-    var z = d * Math.sin(angle)
+    // Calculate new velocities
+    var v1 = b1.getVelocity(), v2 = b2.getVelocity()
+    var x1 = b1.getPosition(), x2 = b2.getPosition()
     
+    var aux11 = v1.clone().sub(v2)
+    var aux12 = x1.clone().sub(x2)
+    var aux13 = aux11.clone().dot(aux12)
+    var aux14 = aux12.length() ** 2;
+    var aux15 = aux13 / aux14
 
-    // Velocities
-    var v1 = b1.getVelocity().clone(), v2 = b2.getVelocity().clone();
-    var x1 = b1.getPosition().clone(), x2 = b2.getPosition().clone();
-    var aux11 = v1.clone().sub(v2), aux12 = x1.clone().sub(x2); var aux13 = aux11.clone().dot(aux12); var aux14 = aux12.length()**2; var aux15 = aux13/aux14;
-    var aux21 = v2.clone().sub(v1), aux22 = x2.clone().sub(x1); var aux23 = aux21.clone().dot(aux22); var aux24 = aux22.length()**2; var aux25 = aux23/aux24;
+    var aux21 = v2.clone().sub(v1)
+    var aux22 = x2.clone().sub(x1)
+    var aux23 = aux21.clone().dot(aux22)
+    var aux24 = aux22.length() ** 2;
+    var aux25 = aux23 / aux24
 
-    var aux16 = aux12.multiplyScalar(aux15);
-    var aux26 = aux22.multiplyScalar(aux25);
+    var aux16 = aux12.multiplyScalar(aux15)
+    var aux26 = aux22.multiplyScalar(aux25)
 
     var v1f = v1.sub(aux16);
     var v2f = v2.sub(aux26);
 
-    //console.log(v1f, v2f);
-
     b1.setVelocity(v1f.x, v1f.y, v1f.z);
     b2.setVelocity(v2f.x, v2f.y, v2f.z);
 
-    b1.positionIncrease(5);
-    b2.positionIncrease(5);
+    // Calculate new positions
+    var position, displacement
+    var d = Math.sqrt(overlapMagnitude) / 2
 
+    // Overlapping resolution is visually smoother if
+    // each ball moves by half of the overlapping magnitude
+    displacement = b1.getVelocity().normalize().multiplyScalar(d)
+    position = b1.getPosition().add(displacement)
+    b1.setPosition(position.x, position.y, position.z)
+
+    displacement = b2.getVelocity().normalize().multiplyScalar(d)
+    position = b2.getPosition().add(displacement)
+    b2.setPosition(position.x, position.y, position.z)
+
+    //TODO validate new positions
 }
 
 
 function distanceBalls(thisBall, otherBall) {
-	return (Math.pow(thisBall.getPosition().x - otherBall.getPosition().x, 2)
-	 + Math.pow(thisBall.getPosition().z - otherBall.getPosition().z, 2))
+	return (thisBall.getPosition().x - otherBall.getPosition().x) ** 2
+	 + (thisBall.getPosition().z - otherBall.getPosition().z) ** 2
 }
 
 function animate(time) {
