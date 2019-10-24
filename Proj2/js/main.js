@@ -536,8 +536,8 @@ function computeBallIntersection(overlapMagnitude, b1, b2) {
     var aux16 = aux12.multiplyScalar(aux15)
     var aux26 = aux22.multiplyScalar(aux25)
 
-    var v1f = v1.sub(aux16).multiplyScalar(COR);
-    var v2f = v2.sub(aux26).multiplyScalar(COR);
+    var v1f = v1.sub(aux16);
+    var v2f = v2.sub(aux26);
 
     b1.setVelocity(v1f.x, v1f.y, v1f.z);
     b2.setVelocity(v2f.x, v2f.y, v2f.z);
