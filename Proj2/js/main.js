@@ -100,9 +100,10 @@ class Ball extends THREE.Object3D {
         this.axis.visible = showAxis;
         this.mesh.add(this.axis);
         this.add(this.mesh);
-        this.velocity = nullVector;
+        this.velocity = nullVector.clone();
         this.canFall = false;
-
+        this._direction = new THREE.Vector3(0,0,0);
+        this.rotation.y = Math.PI/2;
     }
 
     setPosition(x, y, z) {
@@ -118,30 +119,28 @@ class Ball extends THREE.Object3D {
         if (vector.length()) this.position.add(vector);
     }
 
-    setRotationY(rot) {
-        this.rotation.y = rot;
-    }
+    // setRotationY(rot) {
+    //     //this.rotation.y = rot;
+    // }
 
-    saveRealRotY(value) {
-        this.roty = value;
-    }
+    // saveRealRotY(value) {
+    //     //this.roty = value;
+    // }
 
     getRotationY() {
         return this.roty;
     }
 
-    increaseRotationX(delta) {
-        var rot = this.getVelocity().z / 10 * delta;
-        if (rot) this.rotateX(rot);
-    }
-
-    increaseRotationZ(delta) {
+    increaseRotation(delta) {
         var rot = this.getVelocity().z / 10 * delta;
         if (rot) this.rotateZ(rot);
     }
 
     setVelocity(x, y, z) {
         this.velocity = new THREE.Vector3(x, y, z);
+        this._direction = this.velocity.clone().normalize();
+        //this.rotation.y = Math.acos(this._direction.x)
+        console.log(this.rotation.y*180/Math.PI);
     }
 
     changeVelocityScalar(scalar, delta) {
@@ -154,7 +153,7 @@ class Ball extends THREE.Object3D {
     }
 
     getVelocity() {
-        return this.velocity;
+        return this.velocity.clone();
     }
 
     setAxis(value) {
@@ -452,13 +451,7 @@ function createBall() {
     ball.setPosition(pI.x, pI.y, pI.z);
     var random = 2 + Math.random();
     ball.setVelocity(-Math.sin(selectedCannon.getRotY()) * random, 0, -Math.cos(selectedCannon.getRotY()) * random);
-
-    var rotY = Math.acos(ball.getVelocity().x/ball.getVelocity().length());
-    ball.setRotationY(rotY);
-    if (rotY > Math.PI / 2) rotY = rotY - Math.PI / 2;
-    else rotY = -(Math.PI / 2 - rotY);
-    ball.saveRealRotY(rotY);
-
+    
     balls.push(ball);
     selectedCannon.changeShooting(false);
     var cannonToChange = selectedCannon;
@@ -492,25 +485,14 @@ function updatePosition(delta) {
         currentBall.changeVelocityScalar(deacceleration, delta);
 
         // Update rotation
-        currentBall.increaseRotationZ(delta);
+        currentBall.increaseRotation(delta);
     }
 
     if (currCamera == ballCamera) {
         var ball = currCamera.getFollowingBall();
-        var angle = ball.getRotationY();
-        var rotX, rotZ;
+        var cameraPos = ball.getPosition().clone().sub(ball._direction.clone().multiplyScalar(40));
 
-        if (angle) {
-            console.log(angle * 180 / Math.PI);
-            rotX = 30 * Math.sin(angle);
-            rotZ = 30 * Math.cos(angle);
-        }
-        else {
-            rotX = 0;
-            rotZ = 30;
-        }
-
-        currCamera.setCameraPosition(ball.getPosition().x + rotX, ball.getPosition().y + 20, ball.getPosition().z + rotZ);
+        currCamera.setCameraPosition(cameraPos.x, cameraPos.y + 30, cameraPos.z);
         currCamera.lookAtObject(ball.getPosition());
     }
 }
@@ -545,200 +527,58 @@ function checkLimits() {
             // Left wall collision
             currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
             currentBall.setPosition(position.x - d, position.y, position.z)
-            var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
-            currentBall.setRotationY(Math.PI -rotY);
-            if (currentBall.getVelocity().z < 0) currentBall.saveRealRotY(rotY - Math.PI / 2);
-            else currentBall.saveRealRotY(-rotY - Math.PI / 2);
         }
 
         else if ((d = position.x - rightLimit + ballRadius) > 0) {
             // Right wall collision
             currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
             currentBall.setPosition(position.x - d, position.y, position.z)
-            var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
-            currentBall.setRotationY(rotY);
-            if (currentBall.getVelocity().z < 0) currentBall.saveRealRotY(rotY - Math.PI / 2);
-            else currentBall.saveRealRotY(-rotY - Math.PI / 2)
         }
 
         else if ((d = position.z + 2 * wallLength - ballRadius) < 0) {
             // Center wall collision
             currentBall.setVelocity(velocity.x, velocity.y, -velocity.z * COR)
             currentBall.setPosition(position.x, position.y, position.z - d)
-            var rotY = Math.acos(currentBall.getVelocity().x/currentBall.getVelocity().length());
-            if (currentBall.getVelocity().x > 0) currentBall.setRotationY(-rotY + Math.PI);
-            else currentBall.setRotationY(rotY);
-            currentBall.saveRealRotY(-rotY - Math.PI / 2);
         }
     }
 }
 
 function collisionAngle(ball1, ball2) {
-    return Math.atan2(ball2.position.z - ball1.position.z,
-        ball2.position.x - ball1.position.x)
+    // return Math.atan2(ball2.position.z - ball1.position.z,
+    //     ball2.position.x - ball1.position.x)
+    return Math.acos( ball1._direction.dot(ball2._direction) );
 }
-
-/*
-function compute_Ballintersection(mag, fastBall, slowBall) {
-
-    // Calculate new position
-
-    var d = Math.sqrt(mag) / 2
-    var angle = collisionAngle(fastBall, slowBall)
-    console.log("angle: " + angle);
-    var x = d * Math.cos(angle)
-    var z = d * Math.sin(angle)
-
-    slowBall.setPosition(
-        slowBall.position.x + x,
-        slowBall.position.y,
-        slowBall.position.z + z
-    )
-
-    fastBall.setPosition(
-        fastBall.position.x - x,
-        fastBall.position.y,
-        fastBall.position.z - z
-    )
-
-    // TODO verify new position
-
-    // Calculate new velocities
-
-    var fastBallVelocity = fastBall.getVelocity()
-    var slowBallVelocity = slowBall.getVelocity()
-
-    var velocity = fastBallVelocity.length()
-
-    var finalVelocityA = [0, 0, 0]
-    finalVelocityA[0] = (COR * (slowBallVelocity.x - fastBallVelocity.x)
-        + fastBallVelocity.x + slowBallVelocity.x) / 2
-    finalVelocityA[2] = (COR * (slowBallVelocity.z - fastBallVelocity.z)
-        + fastBallVelocity.z + slowBallVelocity.z) / 2
-
-    var finalVelocityB = [velocity * Math.cos(angle), 0, velocity * Math.sin(angle)]
-
-    fastBall.setVelocity(finalVelocityA[0], finalVelocityA[1], finalVelocityA[2])
-    slowBall.setVelocity(finalVelocityB[0], finalVelocityB[1], finalVelocityB[2])
-
-    if (slowBall.getVelocity().length() != 0) {
-        var rotY = Math.acos(slowBall.getVelocity().x/slowBall.getVelocity().length());
-        if (slowBall.getVelocity().z > 0) rotY = -rotY;
-        slowBall.setRotationY(rotY);
-        console.log("slowball: " + rotY * 180 / Math.PI);
-
-        slowBall.setRotationY(rotY);
-        console.log("x: " + slowBall.getVelocity().x + " z: " + slowBall.getVelocity().z);
-    }
-
-    if (fastBall.getVelocity().length() != 0) {
-        var rotY = Math.acos(fastBall.getVelocity().x/fastBall.getVelocity().length());
-        if (fastBall.getVelocity().z > 0) rotY = -rotY
-        
-        fastBall.setRotationY(rotY);
-        console.log("fastball: " + rotY * 180 / Math.PI);
-        
-        console.log("x: " + fastBall.getVelocity().x + " z: " + fastBall.getVelocity().z);
-    }
-}
-*/
 
 function compute_Ballintersection(mag, b1, b2) {
 
     // Calculate new positions
     var d = Math.sqrt(mag) / 2
     var angle = collisionAngle(b1, b2)
+    console.log(angle*180/Math.PI)
     var x = d * Math.cos(angle)
     var z = d * Math.sin(angle)
-
-    b1.setPosition(
-        b1.position.x - x,
-        b1.position.y,
-        b1.position.z - z
-    )
-
-    b2.setPosition(
-        b2.position.x + x,
-        b2.position.y,
-        b2.position.z + z
-    )
-
-    // TODO verify new position
-
-    // Calculate new velocities
-    // STEP #1 - normalize relevant vectors
-    var collisionVec = new THREE.Vector3(
-        b2.position.x - b1.position.x,
-        b2.position.y - b1.position.y,
-        b2.position.z - b1.position.z
-    ).normalize()
-  
-    /*
-    var collisionMag = Math.sqrt(
-        collisionVec.x * collisionVec.x
-        + collisionVec.y * collisionVec.y
-        + collisionVec.z * collisionVec.z
-    )
-    collisionVec.divideScalar(collisionMag)
-    */
-
-    var tangent = new THREE.Vector3(
-        -collisionVec.z,
-        collisionVec.y,
-        collisionVec.x
-    )
-
-    var velocityA = Math.sqrt(
-        b1.velocity.x * b1.velocity.x
-        + b1.velocity.y * b1.velocity.y
-        + b1.velocity.z * b1.velocity.z
-    )
-
-    /*
-    var normedVelocityA = b1.getVelocity()
-    normedVelocityA.divideScalar(velocityA)
-    */
-
-    var normedVelocityA = b1.getVelocity().normalize()
-    angle = tangent.angleTo(normedVelocityA)
-
-
-    // STEP #2 - compute new velocities
-    var finalVelocity
-
-    finalVelocity = tangent
-    finalVelocity.multiplyScalar(velocityA * Math.cos(angle))
-    b1.setVelocity(
-        finalVelocity.x,
-        finalVelocity.y,
-        finalVelocity.z
-    )
     
-    finalVelocity = collisionVec
-    finalVelocity.multiplyScalar(velocityA * Math.sin(angle))
-    b2.setVelocity(
-        finalVelocity.x,
-        finalVelocity.y,
-        finalVelocity.z
-    )
 
-    // Calculate new rotations
-    if (b2.getVelocity().length() != 0) {
-        var rotY = Math.acos(b2.getVelocity().x / b2.getVelocity().length());
-        if (b2.getVelocity().z > 0) rotY = -rotY;
-        b2.setRotationY(rotY);
-        //console.log("slowball: " + rotY * 180 / Math.PI);
-        //console.log("x: " + b2.getVelocity().x + " z: " + b2.getVelocity().z);
-    }
+    // Velocities
+    var v1 = b1.getVelocity().clone(), v2 = b2.getVelocity().clone();
+    var x1 = b1.getPosition().clone(), x2 = b2.getPosition().clone();
+    var aux11 = v1.clone().sub(v2), aux12 = x1.clone().sub(x2); var aux13 = aux11.clone().dot(aux12); var aux14 = aux12.length()**2; var aux15 = aux13/aux14;
+    var aux21 = v2.clone().sub(v1), aux22 = x2.clone().sub(x1); var aux23 = aux21.clone().dot(aux22); var aux24 = aux22.length()**2; var aux25 = aux23/aux24;
 
-    if (b1.getVelocity().length() != 0) {
-        var rotY = Math.acos(b1.getVelocity().x / b1.getVelocity().length());
-        if (b1.getVelocity().z > 0) rotY = -rotY
-        
-        b1.setRotationY(rotY);
-        //console.log("fastball: " + rotY * 180 / Math.PI);
-        //console.log("x: " + b1.getVelocity().x + " z: " + b1.getVelocity().z);
-    }
+    var aux16 = aux12.multiplyScalar(aux15);
+    var aux26 = aux22.multiplyScalar(aux25);
+
+    var v1f = v1.sub(aux16);
+    var v2f = v2.sub(aux26);
+
+    //console.log(v1f, v2f);
+
+    b1.setVelocity(v1f.x, v1f.y, v1f.z);
+    b2.setVelocity(v2f.x, v2f.y, v2f.z);
+
+    b1.positionIncrease(5);
+    b2.positionIncrease(5);
+
 }
 
 
