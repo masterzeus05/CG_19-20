@@ -1,3 +1,5 @@
+// Variables
+
 var scene, renderer, currCamera, viewSize = 4/5;
 var topCamera, perCamera, ballCamera, camera;
 var controls;
@@ -19,6 +21,8 @@ let COR = 0.75, stopVelocity = 0.001
 var movementFlags = {"moveLeft":0, "moveRight":0, "shooting": 0}, selectedCannon;
 var angleMovement = Math.PI/360;
 
+// Classes
+
 class Cannon extends THREE.Object3D {
     constructor(x, y, z, angle) {
         super();
@@ -39,18 +43,6 @@ class Cannon extends THREE.Object3D {
 
     getDirection(){
         return new THREE.Vector3(this._direction.x, this._direction.y, this._direction.z)
-    }
-
-    getPosX() {
-        return this.position.x;
-    }
-
-    getPosY() {
-        return this.position.y;
-    }
-
-    getPosZ() {
-        return this.position.z;
     }
 
     moveLeft(leftLimit, delta) {
@@ -103,7 +95,7 @@ class Ball extends THREE.Object3D {
         this.velocity = nullVector.clone();
         this.canFall = false;
         this._direction = new THREE.Vector3(0,0,0);
-        this.rotation.y = Math.PI/2;
+        this.angle = 0; this.rotX = 0;
     }
 
     setPosition(x, y, z) {
@@ -119,28 +111,20 @@ class Ball extends THREE.Object3D {
         if (vector.length()) this.position.add(vector);
     }
 
-    // setRotationY(rot) {
-    //     //this.rotation.y = rot;
-    // }
-
-    // saveRealRotY(value) {
-    //     //this.roty = value;
-    // }
-
-    getRotationY() {
-        return this.roty;
-    }
-
     increaseRotation(delta) {
-        var rot = this.getVelocity().z / 10 * delta;
-        if (rot) this.rotateZ(rot);
+        var rot = Math.abs(this.getVelocity().length()) / ballRadius * delta;
+        if (rot) this.mesh.rotateX(-rot);
     }
 
     setVelocity(x, y, z) {
         this.velocity = new THREE.Vector3(x, y, z);
         this._direction = this.velocity.clone().normalize();
-        //this.rotation.y = Math.acos(this._direction.x)
-        console.log(this.rotation.y*180/Math.PI);
+        this.angle = getAngle(this._direction);		        //this.rotation.y = Math.acos(this._direction.x)
+        this.rotation.y = (this.angle);
+    }
+
+    getDirection(){
+        return this._direction.clone();
     }
 
     changeVelocityScalar(scalar, delta) {
@@ -244,6 +228,8 @@ class PerCamera extends THREE.PerspectiveCamera {
     }
 }
 
+// Create all things
+
 function createPerspectiveCamera() {
     'use strict';
 
@@ -320,6 +306,8 @@ function createScene() {
     createFieldBalls(3, rightLimit - ballRadius, -(distanceCannonWall - ballRadius));
     createFieldBalls(3, leftLimit + ballRadius, -(distanceCannonWall - ballRadius));
 }
+
+// Event action
 
 function onResize() {
     'use strict';
@@ -445,12 +433,14 @@ function onKeyUp(e) {
     }
 }
 
+// Creation and updating
+
 function createBall() {
     var ball = new Ball();
     var pI = selectedCannon.getLaunchPosition();
     ball.setPosition(pI.x, pI.y, pI.z);
     var random = 2 + Math.random();
-    ball.setVelocity(-Math.sin(selectedCannon.getRotY()) * random, 0, -Math.cos(selectedCannon.getRotY()) * random);
+    ball.setVelocity( -selectedCannon.getDirection().x * random, 0, -selectedCannon.getDirection().z * random);
     
     balls.push(ball);
     selectedCannon.changeShooting(false);
@@ -490,7 +480,7 @@ function updatePosition(delta) {
 
     if (currCamera == ballCamera) {
         var ball = currCamera.getFollowingBall();
-        var cameraPos = ball.getPosition().clone().sub(ball._direction.clone().multiplyScalar(40));
+        var cameraPos = ball.getPosition().clone().sub(ball.getDirection().multiplyScalar(40));
 
         currCamera.setCameraPosition(cameraPos.x, cameraPos.y + 30, cameraPos.z);
         currCamera.lookAtObject(ball.getPosition());
@@ -516,7 +506,10 @@ function checkLimits() {
 			if (mag >= 0) {
                 compute_Ballintersection(mag, currentBall, balls[j])
 			}
-		}
+        }
+        
+        velocity = currentBall.getVelocity()		
+        position = currentBall.getPosition()
 
         // Check for collision with a wall
         if ((d = position.x - leftLimit - ballRadius) < 0) {
@@ -537,10 +530,6 @@ function checkLimits() {
             currentBall.setPosition(position.x, position.y, position.z - d)
         }
     }
-}
-
-function collisionAngle(ball1, ball2) {
-    return Math.acos(ball1._direction.dot(ball2._direction))
 }
 
 function compute_Ballintersection(overlapMagnitude, b1, b2) {
@@ -587,11 +576,23 @@ function compute_Ballintersection(overlapMagnitude, b1, b2) {
     //TODO validate new positions
 }
 
+// Auxiliar functions
+
+function collisionAngle(ball1, ball2) {
+    return Math.acos(ball1.getDirection().dot(ball2.getDirection()))
+}
 
 function distanceBalls(thisBall, otherBall) {
 	return (thisBall.getPosition().x - otherBall.getPosition().x) ** 2
 	 + (thisBall.getPosition().z - otherBall.getPosition().z) ** 2
 }
+
+function getAngle(vector){
+    var x = -vector.x, z = -vector.z;
+    return Math.atan2(x, z);
+}
+
+// Core functions
 
 function animate(time) {
     'use strict';
