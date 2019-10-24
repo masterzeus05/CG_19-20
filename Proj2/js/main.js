@@ -1,4 +1,6 @@
-var scene, renderer, currCamera, viewSize = 3/4;
+// Variables
+
+var scene, renderer, currCamera, viewSize = 4/5;
 var topCamera, perCamera, ballCamera, camera;
 var controls;
 
@@ -8,13 +10,18 @@ var cannonRadius = 5, cannonLength = 50, ballRadius = 5, wallLength = 100, wallH
 var wallsColor = 0xff0000, ballsColor = 0xffffff, cannonsColor = 0x00ff00, selectedColor = 0x0000ff, backgroundColor = 0x000000;
 var materials = [], leftLimit, rightLimit, distanceCannonWall = 100;
 var wireframeOn = true, showAxis = true;
+var nullVector = new THREE.Vector3(0, 0, 0);
 
-var width = window.innerWidth, height = window.innerHeight;
+var width = window.innerWidth, height = window.innerHeight, oldWidth = width, oldHeight = height;
 var timePrev = 0;
 var deacceleration = 995/1000;
 
-var movementFlags = {"moveLeft":0, "moveRight":0}, selectedCannon;
-var angleMovement = Math.PI/180;
+let COR = 0.75, stopVelocity = 0.001
+
+var movementFlags = {"moveLeft":0, "moveRight":0, "shooting": 0}, selectedCannon;
+var angleMovement = Math.PI/360;
+
+// Classes
 
 class Cannon extends THREE.Object3D {
     constructor(x, y, z, angle) {
@@ -25,39 +32,35 @@ class Cannon extends THREE.Object3D {
         var material = new THREE.MeshBasicMaterial({color: cannonsColor, wireframe: true});
         materials.push(material);
         var mesh = new THREE.Mesh(geometry, material);
-        mesh.rotateX(-Math.PI/2);
         this.add(mesh);
+        mesh.rotateX(-Math.PI/2);
         this.rotateY(angle);
         this.mesh = mesh;
         this.canShoot = true;
+        this._direction = new THREE.Vector3(Math.sin(this.rotation.y),0,1);
+
     }
 
     getDirection(){
-        var direction = new THREE.Vector3();
-        this.getWorldDirection(direction);
-        return direction;
-    }
-
-    getPosX() {
-        return this.position.x;
-    }
-
-    getPosY() {
-        return this.position.y;
-    }
-
-    getPosZ() {
-        return this.position.z;
+        return new THREE.Vector3(this._direction.x, this._direction.y, this._direction.z)
     }
 
     moveLeft(leftLimit, delta) {
-        var flag = (this.position.x -(Math.tan(this.rotation.y)*distanceCannonWall) ) >= leftLimit
-        if (flag) this.rotateY(angleMovement*delta);
+        var aux = angleMovement*delta;
+        var flag = (this.position.x -(Math.tan(this.rotation.y+aux)*distanceCannonWall) ) >= leftLimit
+        if (flag) {
+            this.rotateY(aux);
+            this._direction.set(Math.sin(this.rotation.y+aux), 0, Math.cos(this.rotation.y));
+        }
     }
 
     moveRight(rightLimit, delta) {
-        var flag = (this.position.x -(Math.tan(this.rotation.y)*distanceCannonWall) ) <= rightLimit
-        if (flag) this.rotateY(-angleMovement*delta);
+        var aux = -angleMovement*delta;
+        var flag = (this.position.x -(Math.tan(this.rotation.y+aux)*distanceCannonWall) ) <= rightLimit
+        if (flag) {
+            this.rotateY(aux);
+            this._direction.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
+        }
     }
 
     changeColor(color){
@@ -89,7 +92,9 @@ class Ball extends THREE.Object3D {
         this.axis.visible = showAxis;
         this.mesh.add(this.axis);
         this.add(this.mesh);
-        this.setVelocity(0,0,0);
+        this.velocity = nullVector.clone();
+        this._direction = new THREE.Vector3(0,0,0);
+        this.angle = 0; this.rotX = 0;
     }
 
     setPosition(x, y, z) {
@@ -105,36 +110,38 @@ class Ball extends THREE.Object3D {
         if (vector.length()) this.position.add(vector);
     }
 
-    setRotationY(rot) {
-        this.rotation.y = rot;
-        this.roty = rot;
-    }
-
-    getRotationY() {
-        return this.roty;
-    }
-
-    increaseRotationX(delta){
-        var rot = this.getVelocity().z / 10 * delta;
-        if (rot) this.rotateX(rot);
+    increaseRotation(delta) {
+        var rot = Math.abs(this.getVelocity().length()) / (ballRadius*2) * delta;
+        if (rot) this.mesh.rotateX(rot);
     }
 
     setVelocity(x, y, z) {
         this.velocity = new THREE.Vector3(x, y, z);
+        this._direction = this.velocity.clone().normalize();
+        this.angle = getAngle(this._direction);
+        this.rotation.y = (this.angle);
     }
 
-    changeVelocityScalar(scalar, delta){
-        this.velocity.multiplyScalar(scalar**delta);
+    getDirection(){
+        return this._direction.clone();
     }
 
-    getVelocity(){
-        return this.velocity;
+    changeVelocityScalar(scalar, delta) {
+        if (this.velocity != nullVector) this.velocity.multiplyScalar(scalar**delta);
+
+        if (Math.abs(this.velocity.x) < stopVelocity
+            && Math.abs(this.velocity.z) < stopVelocity) {
+            this.velocity = nullVector;
+        }
+    }
+
+    getVelocity() {
+        return this.velocity.clone();
     }
 
     setAxis(value) {
         this.axis.visible = value;
     }
-
 }
 
 class Walls extends THREE.Object3D {
@@ -150,22 +157,21 @@ class Walls extends THREE.Object3D {
         //Left wall
         var meshLeft = new THREE.Mesh(geometry, material);
         meshLeft.position.set(x-size,y+heightSize/2,z);
-        leftLimit = x-size+10;
+        leftLimit = x - size;
 
         //Right wall
         var meshRight = new THREE.Mesh(geometry, material);
         meshRight.position.set(x+size,y+heightSize/2,z);
-        rightLimit = x+size-10;
+        rightLimit = x + size;
 
         //Center wall
         var meshCenter = new THREE.Mesh(geometry, material);
         meshCenter.position.set(x,y+heightSize/2,z-size);
         meshCenter.rotateY(Math.PI/2);
-        
+
         this.add(meshLeft);
         this.add(meshRight);
         this.add(meshCenter);
-    
     }
 }
 
@@ -213,22 +219,27 @@ class PerCamera extends THREE.PerspectiveCamera {
     }
 }
 
-function createPerspectiveCamera(){
-    'use strict';
+// Create all things
 
-    camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 1000);
-
-    camera.position.x = 50;
-    camera.position.y = 50;
-    camera.position.z = 50;
-    camera.lookAt(0,0,0);
-}
-
-function createcannon(x, y, z, angle, tag){
+function createcannon(x, y, z, angle, tag) {
     'use strict';
     var cannon = new Cannon(x, y, z, angle);
     cannons[tag] = cannon;
     scene.add(cannon);
+}
+
+function createBall() {
+    var ball = new Ball();
+    var pI = selectedCannon.getLaunchPosition();
+    ball.setPosition(pI.x, pI.y, pI.z);
+    var random = 2 + Math.random();
+    ball.setVelocity( -selectedCannon.getDirection().x * random, 0, -selectedCannon.getDirection().z * random);
+    
+    balls.push(ball);
+    selectedCannon.changeShooting(false);
+    var cannonToChange = selectedCannon;
+	window.setTimeout(function() { cannonToChange.changeShooting(true) }, 500);
+    scene.add(ball);
 }
 
 function createFieldBalls(numb, coorX, coorZ) {
@@ -257,13 +268,24 @@ function createFieldBalls(numb, coorX, coorZ) {
     }
 }
 
-function createWalls(x, y, z){
+function createWalls(x, y, z) {
     'use strict';
     wallSurface = new Walls(x, y, z);
     scene.add(wallSurface);
 }
 
-function createScene(){
+function createPerspectiveCamera() {
+    'use strict';
+
+    camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 1000);
+
+    camera.position.x = 50;
+    camera.position.y = 50;
+    camera.position.z = 50;
+    camera.lookAt(0,0,0);
+}
+
+function createScene() {
     'use strict';
 
     scene = new THREE.Scene();
@@ -271,7 +293,7 @@ function createScene(){
 
     //Plane for ground
     var geometry = new THREE.PlaneGeometry( 2*wallLength, 2*wallLength, 10, 10);
-    var material = new THREE.MeshBasicMaterial( {color: 0x808080, side: THREE.DoubleSide} ); 
+    var material = new THREE.MeshBasicMaterial( {color: 0x808080, side: THREE.DoubleSide} );
     var plane = new THREE.Mesh( geometry, material );
     plane.rotateX( - Math.PI / 2);
     plane.position.set(0, 0, -wallLength);
@@ -286,16 +308,31 @@ function createScene(){
 
     createWalls(0,0,0);
 
-    createFieldBalls(3, rightLimit, -(distanceCannonWall - 10));
-    createFieldBalls(3, leftLimit, -(distanceCannonWall - 10));
+    createFieldBalls(3, rightLimit - ballRadius, -(distanceCannonWall - ballRadius));
+    createFieldBalls(3, leftLimit + ballRadius, -(distanceCannonWall - ballRadius));
 }
 
-function onResize(){
+// Event action
+
+function onResize() {
     'use strict';
     renderer.setSize(window.innerWidth, window.innerHeight);
-    var width = renderer.getSize().width, height = renderer.getSize().height;
+    var windowVector = new THREE.Vector3(0,0,0);
+    renderer.getSize(windowVector);
+    width = windowVector.x, height = windowVector.y;
+    var angle = oldWidth/oldHeight;
 
     if (window.innerHeight > 0 && window.innerWidth > 0){
+    
+        if (width != oldWidth) {
+            if (width>oldWidth) viewSize /= (1.01**angle);
+            else viewSize *= (1.01**angle);
+        }
+
+        if (height != oldHeight) {
+            if (height>oldHeight) viewSize /= (1.01**angle);
+            else viewSize *= (1.01**angle);
+        }
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
 
@@ -304,43 +341,40 @@ function onResize(){
         topCamera.top = height / 2 * viewSize;
         topCamera.bottom = -topCamera.top;
         topCamera.updateProjectionMatrix();
-        renderer.setSize(width, height);
 
-        perCamera.left = width / -2 * viewSize;
-        perCamera.right = -topCamera.left;
-        perCamera.top = height / 2 * viewSize;
-        perCamera.bottom = -topCamera.top;
+        if (width > oldWidth) perCamera.fov -= Math.atan(angle);
+        else if (width < oldWidth) perCamera.fov += Math.atan(angle);
+        perCamera.aspect = width / height;
         perCamera.updateProjectionMatrix();
-        renderer.setSize(width, height);
 
-        ballCamera.left = width / -2 * viewSize;
-        ballCamera.right = -topCamera.left;
-        ballCamera.top = height / 2 * viewSize;
-        ballCamera.bottom = -topCamera.top;
+
+        if (width > oldWidth) ballCamera.fov -= Math.atan(angle);
+        else if (width < oldWidth) ballCamera.fov += Math.atan(angle);
+        ballCamera.aspect = width / height;
         ballCamera.updateProjectionMatrix();
         renderer.setSize(width, height);
     }
-
+    oldWidth = width; oldHeight = height;
 }
 
-function onKeyDown(e){
+function onKeyDown(e) {
     'use strict';
 
     switch(e.keyCode){
         case 48: //0 - Default Camera
-            console.log("Default camera activates!");
+            //console.log("Default camera activates!");
             currCamera = camera;
             break;
         case 49: //1 - Top Camera
-            console.log("TopCamera activates!");
+            //console.log("TopCamera activates!");
             currCamera = topCamera;
             break;
         case 50: //2 - Lateral Camera
-            console.log("perCamera activates!");
+            //console.log("perCamera activates!");
             currCamera = perCamera;
             break;
         case 51: //3 - Front Camera
-            console.log("ballCamera activates!");
+            //console.log("ballCamera activates!");
             followBall(ballCamera);
             break;
         case 52: //4 - Wireframe toggle
@@ -376,25 +410,16 @@ function onKeyDown(e){
             break;
         case 32: //space bar - shoot a ball
             if (selectedCannon.canShoot) {
-                var ball = new Ball();
-                var pI = selectedCannon.getLaunchPosition();
-                ball.setPosition(pI.x, pI.y, pI.z);
-                ball.setRotationY( selectedCannon.getRotY());
-                var random = 1 + Math.random();
-                ball.setVelocity(-Math.sin(selectedCannon.rotation.y) * random, 0, -Math.cos(selectedCannon.rotation.y) * random);
-                balls.push(ball);
-                selectedCannon.changeShooting(false);
-                window.setTimeout(function() { selectedCannon.changeShooting(true); }, 1000);
-                scene.add(ball);
+                movementFlags["shooting"] = 1;
             }
             break;
         default:
-            console.log(e.keyCode);
+            //console.log(e.keyCode);
             break;
     }
 }
 
-function onKeyUp(e){
+function onKeyUp(e) {
     'use strict';
 
     switch(e.keyCode){
@@ -404,72 +429,161 @@ function onKeyUp(e){
         case 39: // > - Move right
             movementFlags["moveRight"] = 0;
             break;
+        case 32:
+            movementFlags["shooting"] = 0;
+            break;
         default:
             //console.log(e.keyCode);
             break;
     }
 }
 
+// Updating status
+
 function updatePosition(delta) {
     if (movementFlags["moveLeft"]) selectedCannon.moveLeft(leftLimit, delta);
     if (movementFlags["moveRight"]) selectedCannon.moveRight(rightLimit, delta);
+    if (movementFlags["shooting"] && selectedCannon.canShoot) createBall();
 
     for (var i = 0; i < balls.length ; i++) {
+        var currentBall = balls[i];
+
+        // Check if the ball should be removed
+        if (currentBall.getPosition().z > 0 && currentBall.getVelocity().z > 0) {
+            balls.splice(i, 1);
+            if (currCamera == ballCamera && currCamera.getFollowingBall() == currentBall) followBall(currCamera);
+            scene.remove(currentBall);
+        }
+
         // Update Position
-        balls[i].positionIncrease(delta);
+        currentBall.positionIncrease(delta);
 
         // Update Velocity
-        balls[i].changeVelocityScalar(deacceleration, delta);
+        currentBall.changeVelocityScalar(deacceleration, delta);
 
         // Update rotation
-        balls[i].increaseRotationX(delta);
+        currentBall.increaseRotation(delta);
     }
 
     if (currCamera == ballCamera) {
         var ball = currCamera.getFollowingBall();
-        var angle = ball.getRotationY();
-        var rotX, rotZ;
+        var cameraPos = ball.getPosition().clone().sub(ball.getDirection().multiplyScalar(40));
 
-        if (angle) {
-            rotX = 30 * Math.sin(angle);
-            rotZ = 30 * Math.cos(angle);
-        }
-        else {
-            rotX = 0;
-            rotZ = 30;
-        }
-
-        currCamera.setCameraPosition(ball.getPosition().x + rotX, ball.getPosition().y + 20, ball.getPosition().z + rotZ);
+        currCamera.setCameraPosition(cameraPos.x, cameraPos.y + 30, cameraPos.z);
         currCamera.lookAtObject(ball.getPosition());
     }
 }
 
 function followBall(camera) {
-    var random = Math.round(Math.random() * (balls.length - 1));
-    var randomBall = balls[random];
+    var ball = balls[balls.length - 1];
 
-    camera.setFollowingBall(randomBall);
+    camera.setFollowingBall(ball);
     currCamera = camera;
-} 
+}
 
-function animate(time){
+function checkLimits() {
+	for (var i = 0; i < balls.length; i++) {
+        var d, currentBall = balls[i];
+        var velocity = currentBall.getVelocity()
+        var position = currentBall.getPosition()
+
+        // Check for collision with another ball
+		for (var j = i + 1; j < balls.length; j++) {
+            var mag = (ballRadius * 2) ** 2 - distanceBalls(currentBall, balls[j])
+			if (mag >= 0) {
+                compute_Ballintersection(mag, currentBall, balls[j])
+			}
+        }
+        
+        velocity = currentBall.getVelocity()		
+        position = currentBall.getPosition()
+
+        // Check for collision with a wall
+        if ((d = position.x - leftLimit - ballRadius) < 0) {
+            // Left wall collision
+            currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
+            currentBall.setPosition(position.x - d, position.y, position.z)
+        }
+
+        else if ((d = position.x - rightLimit + ballRadius) > 0) {
+            // Right wall collision
+            currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
+            currentBall.setPosition(position.x - d, position.y, position.z)
+        }
+
+        else if ((d = position.z + 2 * wallLength - ballRadius) < 0) {
+            // Center wall collision
+            currentBall.setVelocity(velocity.x, velocity.y, -velocity.z * COR)
+            currentBall.setPosition(position.x, position.y, position.z - d)
+        }
+    }
+}
+
+function compute_Ballintersection(overlapMagnitude, b1, b2) {
+
+    // Calculate new velocities
+    var v1 = b1.getVelocity(), v2 = b2.getVelocity()
+    var x1 = b1.getPosition(), x2 = b2.getPosition()
+    
+    var aux11 = v1.clone().sub(v2)
+    var aux12 = x1.clone().sub(x2)
+    var aux13 = aux11.clone().dot(aux12)
+    var aux14 = aux12.length() ** 2;
+    var aux15 = aux13 / aux14
+
+    var aux21 = v2.clone().sub(v1)
+    var aux22 = x2.clone().sub(x1)
+    var aux23 = aux21.clone().dot(aux22)
+    var aux24 = aux22.length() ** 2;
+    var aux25 = aux23 / aux24
+
+    var aux16 = aux12.multiplyScalar(aux15)
+    var aux26 = aux22.multiplyScalar(aux25)
+
+    var v1f = v1.sub(aux16);
+    var v2f = v2.sub(aux26);
+
+    b1.setVelocity(v1f.x, v1f.y, v1f.z);
+    b2.setVelocity(v2f.x, v2f.y, v2f.z);
+
+    // Calculate new positions
+    var position, displacement
+    var d = Math.sqrt(overlapMagnitude) / 2
+
+    // Overlapping resolution is visually smoother if
+    // each ball moves by half of the overlapping magnitude
+    displacement = b1.getVelocity().normalize().multiplyScalar(d)
+    position = b1.getPosition().add(displacement)
+    b1.setPosition(position.x, position.y, position.z)
+
+    displacement = b2.getVelocity().normalize().multiplyScalar(d)
+    position = b2.getPosition().add(displacement)
+    b2.setPosition(position.x, position.y, position.z)
+
+    //TODO validate new positions
+}
+
+// Core functions
+
+function animate(time) {
     'use strict';
-    var delta = (time - timePrev)/10;
+    var delta = (time - timePrev) / 10;
 
     controls.update();
     updatePosition(delta);
+    checkLimits();
     render();
 
     timePrev = time;
     requestAnimationFrame(animate);
 }
 
-function render(){
+function render() {
     'use strict';
     renderer.render(scene, currCamera);
 }
 
-function init(){
+function init() {
     'use strict';
 
     renderer = new THREE.WebGLRenderer({antialias: true});
@@ -481,17 +595,32 @@ function init(){
     createScene();
     createPerspectiveCamera();
     topCamera = new OrtCamera(0, 100, 0, 0, 0, 0);
-    perCamera = new PerCamera(0, 200, 150, 0, 0, 0);
+    perCamera = new PerCamera(0, 200, 100, 0, 0, 0);
     ballCamera = new PerCamera(0, 30, 200, 0, 0, 0);
 
 
-    currCamera = camera;
+    currCamera = topCamera;
     render();
 
-    controls = new THREE.OrbitControls( currCamera, renderer.domElement );
+    controls = new THREE.OrbitControls( camera, renderer.domElement );
     controls.update();
 
     window.addEventListener("resize", onResize);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
+}
+// Auxiliar functions
+
+function collisionAngle(ball1, ball2) {
+    return Math.acos(ball1.getDirection().dot(ball2.getDirection()))
+}
+
+function distanceBalls(thisBall, otherBall) {
+	return (thisBall.getPosition().x - otherBall.getPosition().x) ** 2
+	 + (thisBall.getPosition().z - otherBall.getPosition().z) ** 2
+}
+
+function getAngle(vector){
+    var x = vector.x, z = vector.z;
+    return Math.atan2(x, z);
 }
