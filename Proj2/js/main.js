@@ -482,10 +482,8 @@ function checkLimits() {
         // Check for collision with another ball
 		for (var j = i + 1; j < balls.length; j++) {
             var mag = (ballRadius * 2) ** 2 - distanceBalls(currentBall, balls[j])
-			if (mag >= 0) {
+			if (mag >= 0)
                 computeBallIntersection(mag, currentBall, balls[j])
-                checkLimits()
-            }
         }
         
         velocity = currentBall.getVelocity()		
@@ -496,21 +494,18 @@ function checkLimits() {
             // Left wall collision
             currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
             currentBall.setPosition(position.x - d, position.y, position.z)
-            checkLimits()
         }
 
         else if ((d = position.x - rightLimit + ballRadius) > 0) {
             // Right wall collision
             currentBall.setVelocity(-velocity.x * COR, velocity.y, velocity.z)
             currentBall.setPosition(position.x - d, position.y, position.z)
-            checkLimits()
         }
 
         else if ((d = position.z + 2 * wallLength - ballRadius) < 0) {
             // Center wall collision
             currentBall.setVelocity(velocity.x, velocity.y, -velocity.z * COR)
             currentBall.setPosition(position.x, position.y, position.z - d)
-            checkLimits()
         }
     }
 }
