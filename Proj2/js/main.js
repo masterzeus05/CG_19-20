@@ -319,6 +319,7 @@ function onResize() {
     var windowVector = new THREE.Vector3(0,0,0);
     renderer.getSize(windowVector);
     width = windowVector.x, height = windowVector.y;
+
     var angle = oldWidth / oldHeight;
 
     if (window.innerHeight > 0 && window.innerWidth > 0) {
@@ -361,6 +362,7 @@ function onKeyDown(e) {
 
     switch(e.keyCode) {
         case 48: //0 - Default Camera
+
             currCamera = camera;
             break;
         case 49: //1 - Top Camera
