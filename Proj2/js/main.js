@@ -93,7 +93,6 @@ class Ball extends THREE.Object3D {
         this.mesh.add(this.axis);
         this.add(this.mesh);
         this.velocity = nullVector.clone();
-        this.canFall = false;
         this._direction = new THREE.Vector3(0,0,0);
         this.angle = 0; this.rotX = 0;
     }
@@ -142,14 +141,6 @@ class Ball extends THREE.Object3D {
 
     setAxis(value) {
         this.axis.visible = value;
-    }
-
-    getCanFall() {
-        return this.canFall;
-    }
-
-    setCanFall(value) {
-        this.canFall = value;
     }
 }
 
@@ -457,15 +448,11 @@ function updatePosition(delta) {
     for (var i = 0; i < balls.length ; i++) {
         var currentBall = balls[i];
 
-        if (currentBall.getPosition().z <= 0) {
-            currentBall.setCanFall(true);
-        }
-
         // Check if the ball should be removed
-        if ((currentBall.getPosition().z > 0 && currentBall.getCanFall()) ||
-            (currentBall.getPosition().z > 0 && currentBall.getVelocity() == nullVector)) {
-            scene.remove(currentBall);
+        if (currentBall.getPosition().z > 0 && currentBall.getVelocity().z > 0) {
             balls.splice(i, 1);
+            if (currCamera == ballCamera && currCamera.getFollowingBall() == currentBall) followBall(currCamera);
+            scene.remove(currentBall);
         }
 
         // Update Position
