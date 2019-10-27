@@ -2,7 +2,7 @@ var scene, renderer, currCamera, viewSize = 4/5;
 var sceneCamera, opArtCamera, camera;
 var controls;
 
-var ballsColor = 0xffffff, backgroundColor = 0x000000;
+var dotsColor = 0xffffff, backgroundColor = 0x000000;
 var wireframeOn = true;
 
 var width = window.innerWidth, height = window.innerHeight;
