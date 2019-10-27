@@ -36,14 +36,6 @@ class PerCamera extends THREE.PerspectiveCamera {
         this.position.z = z;
     }
 
-    setFollowingBall(ball) {
-        this.ball = ball;
-    }
-
-    getFollowingBall() {
-        return this.ball;
-    }
-
     setCameraRotation(value) {
         this.rotation.y = value;
     }
