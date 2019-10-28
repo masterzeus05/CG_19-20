@@ -2,11 +2,65 @@ var scene, renderer, currCamera, viewSize = 4/5;
 var sceneCamera, opArtCamera, camera;
 var controls;
 
-var dotsColor = 0xffffff, backgroundColor = 0x000000;
-var wireframeOn = true;
+var materials = [], dots = [], squares = [];
+var dotsColor = 0xffffff, wallColor = 0x6f7170, squareColor = backgroundColor = 0x000000;
+var wireframeOn = false;
+var dotRadius = 1;
 
 var width = window.innerWidth, height = window.innerHeight;
 var oldWidth = width, oldHeight = height;
+
+class Dot extends THREE.Object3D {
+    constructor() {
+        super();
+        var geometry = new THREE.SphereGeometry(dotRadius, 16, 16);
+        var material = new THREE.MeshBasicMaterial( {color:dotsColor, wireframe: wireframeOn} );
+        materials.push(material);
+        
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.add(this.mesh);
+    }
+
+    setPosition(x, y, z) {
+        this.position.set(x, y, z);
+    }
+}
+
+class Wall extends THREE.Object3D {
+    constructor(x, y, z, width, height) {
+        super();
+        this.position.set(x, y, z);
+
+        var material = new THREE.MeshBasicMaterial( {color: wallColor, wireframe: wireframeOn} );
+        materials.push(material);
+        var geometry = new THREE.BoxGeometry(2, height, width, 8, 8);
+
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.set(x + width / 2, y + height / 2, z);
+        this.mesh.rotateY(Math.PI / 2);
+        this.add(this.mesh);
+    }
+}
+
+class Square extends THREE.Object3D {
+    constructor(x, y, z, width, height) {
+        super();
+        this.position.set(x, y, z);
+
+        var material = new THREE.MeshBasicMaterial( {color: squareColor, wireframe: wireframeOn} );
+        materials.push(material);
+        var geometry = new THREE.BoxGeometry(2, height, width, 8, 8);
+
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.set(x + width / 2, y + height / 2, z);
+        this.mesh.rotateY(Math.PI / 2);
+        this.add(this.mesh);
+    }
+
+    setPosition(x, y, z) {
+        this.position.set(x, y, z);
+    }
+} 
 
 class OrtCamera extends THREE.OrthographicCamera {
     constructor(x, y, z, lookx, looky, looz) {
@@ -45,6 +99,37 @@ class PerCamera extends THREE.PerspectiveCamera {
     }
 }
 
+function createWall(width, height) {
+	var wall = new Wall(0, 0, 0, (width + 1) * 10, (height + 1) * 10)
+	scene.add(wall)
+}
+
+function createDots(width, height) {
+	var x = y = 10
+	for (var i = 0; i < width; i++, x += 10) {
+		y = 10
+		for (var j = 0; j < height; j++, y += 10) {
+			var dot = new Dot()
+			dot.setPosition(x, y, dotRadius * 2);
+			dots.push(dot)
+			scene.add(dot)
+		}
+	}
+}
+
+function createSquares(width, height) {
+	var x = Math.cos(Math.PI / 4)
+	for (var i = 0; i <= width; i++, x += 10) {
+		var y = Math.cos(Math.PI / 4)
+		for (var j = 0; j <= height; j++, y += 10) {
+			var square = new Square(0, 0, 0, 10 - 2 * Math.cos(Math.PI / 4), 10 - 2 * Math.cos(Math.PI / 4))
+			square.setPosition(x, y, dotRadius * 2);
+			squares.push(square)
+			scene.add(square)
+		}
+	}
+}
+
 function createPerspectiveCamera() {
     'use strict';
 
@@ -62,6 +147,10 @@ function createScene() {
 
     scene = new THREE.Scene();
     scene.add(new THREE.AxesHelper(100));
+
+    createWall(12, 9)
+    createDots(12, 9)
+    createSquares(12, 9)
 }
 
 function onResize() {
