@@ -13,11 +13,12 @@ var oldWidth = width, oldHeight = height;
 class Dot extends THREE.Object3D {
     constructor() {
         super();
-        var geometry = new THREE.SphereGeometry(dotRadius, 16, 16);
+        var geometry = new THREE.CylinderGeometry(dotRadius, dotRadius, dotRadius * 2, 64, 1);
         var material = new THREE.MeshBasicMaterial( {color:dotsColor, wireframe: wireframeOn} );
         materials.push(material);
         
         this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.rotateX(-Math.PI/2);
         this.add(this.mesh);
     }
 
