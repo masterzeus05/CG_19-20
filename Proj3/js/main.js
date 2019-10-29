@@ -32,16 +32,19 @@ class THREEJSObject extends THREE.Object3D {
         super();
     }
 
-    createBasicMaterial(color) {
-        this.basicMaterial = new THREE.MeshBasicMaterial( {color:color, wireframe: wireframeOn} );
+    createBasicMaterial(color, side = THREE.FrontSide, transparent = false, opacity = 1) {
+        this.basicMaterial = new THREE.MeshBasicMaterial( {color: color, wireframe: wireframeOn, side: side, 
+            transparent:transparent, opacity: opacity} );
     }
 
-    createPhongMaterial(color) {
-        this.phongMaterial = new THREE.MeshPhongMaterial( {color:color, wireframe: wireframeOn} );
+    createPhongMaterial(color, side = THREE.FrontSide, transparent = false, opacity = 1) {
+        this.phongMaterial = new THREE.MeshPhongMaterial( {color: color, wireframe: wireframeOn, side: side, 
+            transparent:transparent, opacity: opacity} );
     }
 
-    createLambertMaterial(color) {
-        this.lambertMaterial = new THREE.MeshLambertMaterial( {color:color, wireframe: wireframeOn} );
+    createLambertMaterial(color, side = THREE.FrontSide, transparent = false, opacity = 1) {
+        this.lambertMaterial = new THREE.MeshLambertMaterial( {color: color, wireframe: wireframeOn, side: side, 
+            transparent:transparent, opacity: opacity} );
     }
 
     setBasicMaterial() {
@@ -160,7 +163,7 @@ class Square extends THREEJSObject {
 } 
 
 // Icosahedron and pedestal
-class Icosahedron extends THREE.Object3D {
+class Icosahedron extends THREEJSObject {
     constructor(x, y, z) {
         super();
         this.position.set(x,y+0.2,z+pedestalRadius*2+5);
@@ -169,11 +172,13 @@ class Icosahedron extends THREE.Object3D {
 
         // Prepare materials
         this.materialPedestal = new THREE.MeshBasicMaterial( {color: pedestalColor, wireframe: wireframeOn} );
-        materials.push(this.materialPedestal);
 
-        this.materialIcosahedron = new THREE.MeshBasicMaterial( {color: icosahedronColor, wireframe: wireframeOn, side: THREE.DoubleSide, 
-            transparent:true, opacity: icosahedronOpacity} );
-        materials.push(this.materialIcosahedron);
+        // this.materialIcosahedron = new THREE.MeshBasicMaterial( {color: icosahedronColor, wireframe: wireframeOn, side: THREE.DoubleSide, 
+        //     transparent:true, opacity: icosahedronOpacity} );
+
+        this.createBasicMaterial(icosahedronColor, THREE.DoubleSide, true, icosahedronOpacity);
+        this.createPhongMaterial(icosahedronColor, THREE.DoubleSide, true, icosahedronOpacity);
+        this.createLambertMaterial(icosahedronColor, THREE.DoubleSide, true, icosahedronOpacity);
 
         // Create meshes
         this.meshList = [];
@@ -187,7 +192,7 @@ class Icosahedron extends THREE.Object3D {
         // Create wall
         var wall = new Wall(-wallWidth / 2, wallHeight / 2, objectDepth / 2, wallWidth, wallHeight)
 	    scene.add(wall)
-
+        objects.push(this);
     }
 
     createPedestal() {
@@ -271,7 +276,7 @@ class Icosahedron extends THREE.Object3D {
         geometry.faces.push( new THREE.Face3( 7, 9, 11 ) );
 
         geometry.computeFaceNormals(); 
-        var mesh = new THREE.Mesh(geometry, this.materialIcosahedron);
+        var mesh = new THREE.Mesh(geometry, this.getPhongMaterial());
 
         for (let j=0; j<geometry.vertices.length; j++){
             var v = geometry.vertices[j];
@@ -286,6 +291,7 @@ class Icosahedron extends THREE.Object3D {
 
         mesh.position.set(0, pedestalHeight*3/2 + icosahedronSideLength*16/20, 0);
         mesh.rotateX(Math.PI/8);
+        this.mesh = mesh;
         this.meshList.push(mesh);   
 
     }
