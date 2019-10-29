@@ -20,7 +20,7 @@ var oldWidth = width, oldHeight = height;
 //Lights
 var directionalLight;
 
-var objects = [], lastUsedMaterial = "phong";
+var objects = [], lastUsedMaterial = "phong", isBasicMaterial = 0;;
 
 class THREEJSObject extends THREE.Object3D {
     constructor() {
@@ -345,18 +345,26 @@ function onKeyDown(e) {
         case 54: //6 - Op Art camera
             currCamera = opArtCamera;
             break;
-        case 69:
+        case 69: //E - Change between Phong and Lambert Materials
             for (var i = 0; i < objects.length; i++) {
                 if (lastUsedMaterial == "phong") objects[i].setLambertMaterial();
                 else objects[i].setPhongMaterial();
             }
 
-            if (lastUsedMaterial == "phong") lastUsedMaterial = "lambert";
-            else lastUsedMaterial = "phong";
+            lastUsedMaterial = lastUsedMaterial == "phong" ? "lambert" : "phong";
             break;
         case 81: //Q - Toggle directional lights
             if (directionalLight.intensity == 1) directionalLight.intensity = 0;
             else directionalLight.intensity = 1;
+            break;
+        case 87: //W - Toggle basic material
+            for (var i = 0; i < objects.length; i++) {
+                if (isBasicMaterial && lastUsedMaterial == "phong") objects[i].setPhongMaterial();
+                else if (isBasicMaterial && lastUsedMaterial == "lambert") objects[i].setLambertMaterial();
+                else objects[i].setBasicMaterial();
+            }
+            
+            isBasicMaterial = isBasicMaterial == 0 ? 1 : 0;
             break;
         default:
             break;
