@@ -23,7 +23,7 @@ var width = window.innerWidth, height = window.innerHeight;
 var oldWidth = width, oldHeight = height;
 
 //Lights
-var directionalLight;
+var directionalLight, switchingLights = false;
 
 var objects = [], lastUsedMaterial = "phong", isBasicMaterial = 0;;
 
@@ -559,8 +559,26 @@ function onKeyDown(e) {
             isBasicMaterial = 0;
             break;
         case 81: //Q - Toggle directional lights
-            if (directionalLight.intensity == 1) directionalLight.intensity = 0;
-            else directionalLight.intensity = 1;
+            if (directionalLight.intensity == 1 && !switchingLights) {
+                switchingLights = true;
+                var lightTimeout = setInterval(function() {
+                    directionalLight.intensity -= 0.1;
+                    if (directionalLight.intensity <= 0) {
+                        clearInterval(lightTimeout);
+                        switchingLights = false;
+                    }
+                }, 100);
+            }
+            else if (!switchingLights) {
+                switchingLights = true;
+                var lightTimeout = setInterval(function() {
+                    directionalLight.intensity += 0.1;
+                    if (directionalLight.intensity >= 1) {
+                        clearInterval(lightTimeout);
+                        switchingLights = false;
+                    }
+                }, 100);
+            }
             break;
         case 82: //r - Change edges of icosahedron
             icosahedron.toggleEdges();
