@@ -20,6 +20,8 @@ var oldWidth = width, oldHeight = height;
 //Lights
 var directionalLight;
 
+var objects = [], lastUsedMaterial = "phong";
+
 class THREEJSObject extends THREE.Object3D {
     constructor() {
         super();
@@ -74,6 +76,7 @@ class Dot extends THREEJSObject {
         this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
         this.mesh.rotateX(-Math.PI / 2);
         this.add(this.mesh);
+        objects.push(this);
     }
 
     setPosition(x, y, z) {
@@ -108,6 +111,7 @@ class Paint extends THREEJSObject {
 
         this.mesh = new THREE.Mesh(geometry, this.getPhongMaterial());
         this.add(this.mesh);
+        objects.push(this);
     }
 }
 
@@ -130,6 +134,7 @@ class Frame extends THREEJSObject {
         this.mesh.material.polygonOffsetUnits = 0.1;
 
         this.add(this.mesh);
+        objects.push(this);
     }
 }
 
@@ -145,6 +150,7 @@ class Square extends THREEJSObject {
 
         this.mesh = new THREE.Mesh(geometry, this.getPhongMaterial());
         this.add(this.mesh);
+        objects.push(this);
     }
 } 
 
@@ -338,6 +344,15 @@ function onKeyDown(e) {
             break;
         case 54: //6 - Op Art camera
             currCamera = opArtCamera;
+            break;
+        case 69:
+            for (var i = 0; i < objects.length; i++) {
+                if (lastUsedMaterial == "phong") objects[i].setLambertMaterial();
+                else objects[i].setPhongMaterial();
+            }
+
+            if (lastUsedMaterial == "phong") lastUsedMaterial = "lambert";
+            else lastUsedMaterial = "phong";
             break;
         case 81: //Q - Toggle directional lights
             if (directionalLight.intensity == 1) directionalLight.intensity = 0;
