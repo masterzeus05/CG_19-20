@@ -16,7 +16,7 @@ var dotRadius = 1;
 var dotsColor = 0xffffff, paintColor = 0x858585, squareColor = 0x000000, frameColor = 0x653815;
 
 //Icosahedron
-var icosahedronColor = 0x159809, icosahedronSideLength = 15;
+var icosahedronColor = 0x159809, icosahedronSideLength = 5;
 var pedestalColor = frameColor, pedestalHeight = 30, pedestalRadius = 10;
 
 var width = window.innerWidth, height = window.innerHeight;
@@ -155,26 +155,105 @@ class Icosahedron extends THREE.Object3D {
         var goldNum = (1+Math.sqrt(5))/2;
         var aux = icosahedronSideLength;
 
-        var v1 = new THREE.Vector3(0, 0, 0);
-        var v2 = new THREE.Vector3(4*aux, 0, 0);
-        var v3 = new THREE.Vector3(2*aux, Math.sqrt(12)*aux, 0);
-        geometry.vertices.push(v1, v2, v3);
+        for (let i=0; i<1; i++) {
+            var coords = [0, aux, goldNum*aux];
+            var v1 = new THREE.Vector3(0, -1*aux, -goldNum*aux);
+            var v2 = new THREE.Vector3(0, -1*aux, goldNum*aux);
+            var v3 = new THREE.Vector3(0, 1*aux, -goldNum*aux);
+            var v4 = new THREE.Vector3(0, 1*aux, goldNum*aux);
 
-        geometry.faces.push( new THREE.Face3( 0, 1, 2 ) );
-        geometry.computeFaceNormals();
-        mesh = new THREE.Mesh(geometry, this.materialIcosahedron);
-        mesh.position.set(0, 10, 30);
-        this.add(mesh);
-        this.meshList.push(mesh);
+            var v5 = new THREE.Vector3(-1*aux, -goldNum*aux, 0);
+            var v6 = new THREE.Vector3(-1*aux, goldNum*aux, 0);
+            var v7 = new THREE.Vector3(1*aux, -goldNum*aux, 0);
+            var v8 = new THREE.Vector3(1*aux, goldNum*aux, 0);
 
-        // Default way WRONG
-        geometry = new THREE.IcosahedronGeometry(icosahedronSideLength, 1);
+            var v9 = new THREE.Vector3(-goldNum*aux, 0, -1*aux);
+            var v10 = new THREE.Vector3(goldNum*aux, 0, -1*aux);
+            var v11 = new THREE.Vector3(-goldNum*aux, 0, 1*aux);
+            var v12 = new THREE.Vector3(goldNum*aux, 0, 1*aux);
+
+            geometry.vertices.push(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
+            geometry.faces.push( new THREE.Face3( 2, 5, 7 ) );
+            geometry.faces.push( new THREE.Face3( 3, 5, 7 ) );
+            geometry.faces.push( new THREE.Face3( 2, 5, 8 ) );
+            geometry.faces.push( new THREE.Face3( 3, 5, 10 ) );
+            geometry.faces.push( new THREE.Face3( 5, 8, 10 ) );
+            geometry.faces.push( new THREE.Face3( 4, 8, 10 ) );
+            geometry.faces.push( new THREE.Face3( 3, 7, 11 ) );
+            geometry.faces.push( new THREE.Face3( 7, 9, 11 ) );
+            geometry.faces.push( new THREE.Face3( 2, 7, 9 ) );
+            geometry.faces.push( new THREE.Face3( 1, 3, 10 ) );
+            geometry.faces.push( new THREE.Face3( 1, 3, 11 ) );
+            geometry.faces.push( new THREE.Face3( 1, 4, 10 ) );
+            geometry.faces.push( new THREE.Face3( 6, 9, 11 ) );
+            geometry.faces.push( new THREE.Face3( 1, 6, 11 ) );
+            geometry.faces.push( new THREE.Face3( 1, 4, 6 ) );
+            geometry.faces.push( new THREE.Face3( 0, 6, 9 ) );
+            geometry.faces.push( new THREE.Face3( 0, 2, 9 ) );
+            geometry.faces.push( new THREE.Face3( 0, 2, 8 ) );
+            geometry.faces.push( new THREE.Face3( 0, 4, 8 ) );
+            geometry.faces.push( new THREE.Face3( 0, 4, 6 ) );
+        }
+
+        geometry.computeFaceNormals(); 
         mesh = new THREE.Mesh(geometry, this.materialIcosahedron);
-        mesh.position.set(0, pedestalHeight*3/2+icosahedronSideLength/4, 0);
-        this.add(mesh);
-        this.meshList.push(mesh);
+
+        for (let j=0; j<geometry.vertices.length; j++){
+            var v = geometry.vertices[j];
+            mesh.add(this.createPoint(v.x, v.y, v.z, j))
+        }
+
+        var geo = new THREE.EdgesGeometry( mesh.geometry ); // or WireframeGeometry
+        var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
+        var wireframe = new THREE.LineSegments( geo, mat );
+        mesh.add( wireframe );
+
+        mesh.position.set(65, 30, 30);
+        this.meshList.push(mesh);   
 
     }
+
+    createPoint(x,y,z, i) {
+        var dotGeometry = new THREE.Geometry();
+        dotGeometry.vertices.push(new THREE.Vector3( x, y, z));
+        var dotMaterial = new THREE.PointsMaterial( { size: 10, sizeAttenuation: false } );
+        var dot = new THREE.Points( dotGeometry, dotMaterial );
+        
+        var sprite = this.makeTextSprite(i.toString(), {fontsize: 64});
+        sprite.position.set( x,y,z );
+        dot.add( sprite );
+
+        return dot;
+    }
+
+    makeTextSprite(message, opts) {
+        var parameters = opts || {};
+        var fontface = parameters.fontface || 'Helvetica';
+        var fontsize = parameters.fontsize || 120;
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d');
+        context.font = fontsize + "px " + fontface;
+    
+        // get size data (height depends only on font size)
+        var metrics = context.measureText(message);
+        var textWidth = metrics.width;
+    
+        // text color
+        context.fillStyle = 'rgba(255, 255, 255, 1.0)';
+        context.fillText(message, 0, fontsize);
+    
+        // canvas contents will be used for a texture
+        var texture = new THREE.Texture(canvas)
+        texture.minFilter = THREE.LinearFilter;
+        texture.needsUpdate = true;
+    
+        var spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+        var sprite = new THREE.Sprite( spriteMaterial );
+        sprite.scale.set( 10, 5, 1.0 );
+        sprite.center.set( 0,1 );
+        return sprite;
+    }
+
 }
 
 // Cameras
