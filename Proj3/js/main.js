@@ -95,8 +95,8 @@ class Square extends THREE.Object3D {
 
 class OrtCamera extends THREE.OrthographicCamera {
     constructor(x, y, z, lookx, looky, looz) {
-        super(width / -2 * viewSize, width / 2 * viewSize, 
-            height / 2 * viewSize, height / -2 * viewSize, 1, 800);
+        var cameraWidth = (camera.aspect * wallHeight - wallWidth) / 2;
+        super(0 - cameraWidth, wallWidth + cameraWidth, wallHeight / 2, -wallHeight / 2, 1, 800);
 
         this.position.x = x;
         this.position.y = y;
@@ -234,10 +234,11 @@ function onResize() {
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
 
-        opArtCamera.left = width / -2 * viewSize;
-        opArtCamera.right = -opArtCamera.left;
-        opArtCamera.top = height / 2 * viewSize;
-        opArtCamera.bottom = -opArtCamera.top;
+        var cameraWidth = (camera.aspect * wallHeight - wallWidth) / 2;
+        opArtCamera.left = 0 - cameraWidth;
+        opArtCamera.right = wallWidth + cameraWidth;
+        opArtCamera.top = wallHeight / 2;
+        opArtCamera.bottom = -wallHeight / 2;
         opArtCamera.updateProjectionMatrix();
 
         if (width > oldWidth) sceneCamera.fov -= Math.atan(angle);
@@ -304,8 +305,8 @@ function init() {
 
     createScene();
     createPerspectiveCamera();
-    opArtCamera = new OrtCamera(0, 30, 50, 0, 30, 0);
-    sceneCamera = new PerCamera(0, 200, 100, 0, 0, 0);
+    opArtCamera = new OrtCamera(0, 50, 50, 0, wallHeight / 2, 0);
+    sceneCamera = new PerCamera(0, 150, 150, 0, 0, 0);
 
     currCamera = camera;
     render();
