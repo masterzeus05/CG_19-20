@@ -16,7 +16,7 @@ var dotRadius = 1;
 var dotsColor = 0xffffff, paintColor = 0x858585, squareColor = 0x000000, frameColor = 0x653815;
 
 //Icosahedron
-var icosahedronColor = 0x159809, icosahedronSideLength = 5;
+var icosahedronColor = 0x159809, icosahedronSideLength = 10, icosahedronOffset = 2;
 var pedestalColor = frameColor, pedestalHeight = 30, pedestalRadius = 10;
 
 var width = window.innerWidth, height = window.innerHeight;
@@ -156,43 +156,42 @@ class Icosahedron extends THREE.Object3D {
         var aux = icosahedronSideLength;
 
         for (let i=0; i<1; i++) {
-            var coords = [0, aux, goldNum*aux];
-            var v1 = new THREE.Vector3(0, -1*aux, -goldNum*aux);
-            var v2 = new THREE.Vector3(0, -1*aux, goldNum*aux);
-            var v3 = new THREE.Vector3(0, 1*aux, -goldNum*aux);
-            var v4 = new THREE.Vector3(0, 1*aux, goldNum*aux);
+            var v0 = new THREE.Vector3(0 + icosahedronOffset, -1*aux, -goldNum*aux);
+            var v1 = new THREE.Vector3(0, -1*aux + icosahedronOffset, goldNum*aux);
+            var v2 = new THREE.Vector3(0, 1*aux - icosahedronOffset, -goldNum*aux);
+            var v3 = new THREE.Vector3(0 - icosahedronOffset, 1*aux, goldNum*aux);
 
-            var v5 = new THREE.Vector3(-1*aux, -goldNum*aux, 0);
-            var v6 = new THREE.Vector3(-1*aux, goldNum*aux, 0);
-            var v7 = new THREE.Vector3(1*aux, -goldNum*aux, 0);
-            var v8 = new THREE.Vector3(1*aux, goldNum*aux, 0);
+            var v4 = new THREE.Vector3(-1*aux + icosahedronOffset, -goldNum*aux, 0);
+            var v5 = new THREE.Vector3(-1*aux, goldNum*aux + icosahedronOffset, 0);
+            var v6 = new THREE.Vector3(1*aux, -goldNum*aux - icosahedronOffset, 0);
+            var v7 = new THREE.Vector3(1*aux - icosahedronOffset, goldNum*aux, 0);
 
-            var v9 = new THREE.Vector3(-goldNum*aux, 0, -1*aux);
-            var v10 = new THREE.Vector3(goldNum*aux, 0, -1*aux);
-            var v11 = new THREE.Vector3(-goldNum*aux, 0, 1*aux);
-            var v12 = new THREE.Vector3(goldNum*aux, 0, 1*aux);
+            var v8 = new THREE.Vector3(-goldNum*aux + icosahedronOffset, 0, -1*aux);
+            var v9 = new THREE.Vector3(goldNum*aux, 0 + icosahedronOffset, -1*aux);
+            var v10 = new THREE.Vector3(-goldNum*aux, 0 - icosahedronOffset, 1*aux);
+            var v11 = new THREE.Vector3(goldNum*aux - icosahedronOffset, 0, 1*aux);
 
-            geometry.vertices.push(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
-            geometry.faces.push( new THREE.Face3( 2, 5, 7 ) );
-            geometry.faces.push( new THREE.Face3( 3, 5, 7 ) );
-            geometry.faces.push( new THREE.Face3( 2, 5, 8 ) );
-            geometry.faces.push( new THREE.Face3( 3, 5, 10 ) );
-            geometry.faces.push( new THREE.Face3( 5, 8, 10 ) );
-            geometry.faces.push( new THREE.Face3( 4, 8, 10 ) );
-            geometry.faces.push( new THREE.Face3( 3, 7, 11 ) );
-            geometry.faces.push( new THREE.Face3( 7, 9, 11 ) );
-            geometry.faces.push( new THREE.Face3( 2, 7, 9 ) );
-            geometry.faces.push( new THREE.Face3( 1, 3, 10 ) );
-            geometry.faces.push( new THREE.Face3( 1, 3, 11 ) );
-            geometry.faces.push( new THREE.Face3( 1, 4, 10 ) );
-            geometry.faces.push( new THREE.Face3( 6, 9, 11 ) );
-            geometry.faces.push( new THREE.Face3( 1, 6, 11 ) );
-            geometry.faces.push( new THREE.Face3( 1, 4, 6 ) );
-            geometry.faces.push( new THREE.Face3( 0, 6, 9 ) );
+            geometry.vertices.push(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
             geometry.faces.push( new THREE.Face3( 0, 2, 9 ) );
             geometry.faces.push( new THREE.Face3( 0, 2, 8 ) );
             geometry.faces.push( new THREE.Face3( 0, 4, 8 ) );
             geometry.faces.push( new THREE.Face3( 0, 4, 6 ) );
+            geometry.faces.push( new THREE.Face3( 0, 6, 9 ) );
+            geometry.faces.push( new THREE.Face3( 1, 3, 10 ) );
+            geometry.faces.push( new THREE.Face3( 1, 3, 11 ) );
+            geometry.faces.push( new THREE.Face3( 1, 4, 6 ) );
+            geometry.faces.push( new THREE.Face3( 1, 4, 10 ) );
+            geometry.faces.push( new THREE.Face3( 1, 6, 11 ) );
+            geometry.faces.push( new THREE.Face3( 2, 5, 7 ) );
+            geometry.faces.push( new THREE.Face3( 2, 5, 8 ) );
+            geometry.faces.push( new THREE.Face3( 2, 7, 9 ) );
+            geometry.faces.push( new THREE.Face3( 3, 5, 7 ) );
+            geometry.faces.push( new THREE.Face3( 3, 5, 10 ) );
+            geometry.faces.push( new THREE.Face3( 3, 7, 11 ) );
+            geometry.faces.push( new THREE.Face3( 4, 8, 10 ) );
+            geometry.faces.push( new THREE.Face3( 5, 8, 10 ) );
+            geometry.faces.push( new THREE.Face3( 6, 9, 11 ) );
+            geometry.faces.push( new THREE.Face3( 7, 9, 11 ) );
         }
 
         geometry.computeFaceNormals(); 
@@ -203,7 +202,7 @@ class Icosahedron extends THREE.Object3D {
             mesh.add(this.createPoint(v.x, v.y, v.z, j))
         }
 
-        var geo = new THREE.EdgesGeometry( mesh.geometry ); // or WireframeGeometry
+        var geo = new THREE.EdgesGeometry( mesh.geometry );
         var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
         var wireframe = new THREE.LineSegments( geo, mat );
         mesh.add( wireframe );
