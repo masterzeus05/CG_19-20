@@ -15,9 +15,15 @@ var wallColor = 0xbdbcba, wallWidth = 130, wallHeight = 100;
 var dotRadius = 1;
 var dotsColor = 0xffffff, paintColor = 0x858585, squareColor = 0x000000, frameColor = 0x653815;
 
+//Icosahedron
+var icosahedronColor = 0x159809, icosahedronSideLength = 10, icosahedronOffset = 1, icosahedronOpacity = 0.7;
+var pedestalColor = frameColor, pedestalHeight = 30, pedestalRadius = 10;
+var icosahedron;
+
 var width = window.innerWidth, height = window.innerHeight;
 var oldWidth = width, oldHeight = height;
 
+// Illusion
 class Dot extends THREE.Object3D {
     constructor() {
         super();
@@ -93,6 +99,188 @@ class Square extends THREE.Object3D {
     }
 } 
 
+// Icosahedron and pedestal
+class Icosahedron extends THREE.Object3D {
+    constructor(x, y, z) {
+        super();
+        this.position.set(x,y+0.2,z+pedestalRadius*2+5);
+        this._showEdges = true;
+        this._pointList = [];
+
+        // Prepare materials
+        this.materialPedestal = new THREE.MeshBasicMaterial( {color: pedestalColor, wireframe: wireframeOn} );
+        materials.push(this.materialPedestal);
+
+        this.materialIcosahedron = new THREE.MeshBasicMaterial( {color: icosahedronColor, wireframe: wireframeOn, side: THREE.DoubleSide, 
+            transparent:true, opacity: icosahedronOpacity} );
+        materials.push(this.materialIcosahedron);
+
+        // Create meshes
+        this.meshList = [];
+        this.createPedestal();
+        this.createIcosahedron();
+        this.toggleEdges();
+
+        // Add all meshes to object3D
+        for (let i=0; i<this.meshList.length; i++) this.add(this.meshList[i]);
+
+        // Create wall
+        var wall = new Wall(-wallWidth / 2, wallHeight / 2, objectDepth / 2, wallWidth, wallHeight)
+	    scene.add(wall)
+
+    }
+
+    createPedestal() {
+        var geometry, mesh;
+
+        // Pedestal top basis
+        geometry = new THREE.CylinderGeometry( pedestalRadius*2, pedestalRadius, pedestalHeight/4, 16, 8);
+        mesh = new THREE.Mesh(geometry, this.materialPedestal);
+        mesh.position.set(0,9*pedestalHeight/8,0);
+        this.meshList.push(mesh);
+
+        var geo = new THREE.EdgesGeometry( mesh.geometry );
+        var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
+        var wireframe = new THREE.LineSegments( geo, mat );
+        mesh.add( wireframe );
+
+        // Pedestal cylinder
+        var geometry = new THREE.CylinderGeometry( pedestalRadius, pedestalRadius, pedestalHeight, 16, 8);
+        mesh = new THREE.Mesh(geometry, this.materialPedestal);
+        mesh.position.set(0,pedestalHeight/2+pedestalHeight/4,0);
+        this.meshList.push(mesh);
+
+        var geo = new THREE.EdgesGeometry( mesh.geometry );
+        var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
+        var wireframe = new THREE.LineSegments( geo, mat );
+        mesh.add( wireframe );
+
+        // Pedestal bottom basis
+        geometry = new THREE.CylinderGeometry( pedestalRadius, pedestalRadius*3/2, pedestalHeight/4, 16, 8);
+        mesh = new THREE.Mesh(geometry, this.materialPedestal);
+        mesh.position.set(0,pedestalHeight/8,0);
+        this.meshList.push(mesh);
+
+        var geo = new THREE.EdgesGeometry( mesh.geometry );
+        var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
+        var wireframe = new THREE.LineSegments( geo, mat );
+        mesh.add( wireframe );
+    }
+
+    createIcosahedron() {
+    
+        var geometry = new THREE.Geometry();
+        var goldNum = (1+Math.sqrt(5))/2;
+        var aux = icosahedronSideLength;
+
+        var v0 = new THREE.Vector3(0 + icosahedronOffset, -1*aux, -goldNum*aux);
+        var v1 = new THREE.Vector3(0, -1*aux + icosahedronOffset, goldNum*aux);
+        var v2 = new THREE.Vector3(0, 1*aux - icosahedronOffset, -goldNum*aux);
+        var v3 = new THREE.Vector3(0 - icosahedronOffset, 1*aux, goldNum*aux);
+
+        var v4 = new THREE.Vector3(-1*aux + icosahedronOffset, -goldNum*aux, 0);
+        var v5 = new THREE.Vector3(-1*aux, goldNum*aux + icosahedronOffset, 0);
+        var v6 = new THREE.Vector3(1*aux, -goldNum*aux - icosahedronOffset, 0);
+        var v7 = new THREE.Vector3(1*aux - icosahedronOffset, goldNum*aux, 0);
+
+        var v8 = new THREE.Vector3(-goldNum*aux + icosahedronOffset, 0, -1*aux);
+        var v9 = new THREE.Vector3(goldNum*aux, 0 + icosahedronOffset, -1*aux);
+        var v10 = new THREE.Vector3(-goldNum*aux, 0 - icosahedronOffset, 1*aux);
+        var v11 = new THREE.Vector3(goldNum*aux - icosahedronOffset, 0, 1*aux);
+
+        geometry.vertices.push(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
+        geometry.faces.push( new THREE.Face3( 0, 2, 9 ) );
+        geometry.faces.push( new THREE.Face3( 0, 2, 8 ) );
+        geometry.faces.push( new THREE.Face3( 0, 4, 8 ) );
+        geometry.faces.push( new THREE.Face3( 0, 4, 6 ) );
+        geometry.faces.push( new THREE.Face3( 0, 6, 9 ) );
+        geometry.faces.push( new THREE.Face3( 1, 3, 10 ) );
+        geometry.faces.push( new THREE.Face3( 1, 3, 11 ) );
+        geometry.faces.push( new THREE.Face3( 1, 4, 6 ) );
+        geometry.faces.push( new THREE.Face3( 1, 4, 10 ) );
+        geometry.faces.push( new THREE.Face3( 1, 6, 11 ) );
+        geometry.faces.push( new THREE.Face3( 2, 5, 7 ) );
+        geometry.faces.push( new THREE.Face3( 2, 5, 8 ) );
+        geometry.faces.push( new THREE.Face3( 2, 7, 9 ) );
+        geometry.faces.push( new THREE.Face3( 3, 5, 7 ) );
+        geometry.faces.push( new THREE.Face3( 3, 5, 10 ) );
+        geometry.faces.push( new THREE.Face3( 3, 7, 11 ) );
+        geometry.faces.push( new THREE.Face3( 4, 8, 10 ) );
+        geometry.faces.push( new THREE.Face3( 5, 8, 10 ) );
+        geometry.faces.push( new THREE.Face3( 6, 9, 11 ) );
+        geometry.faces.push( new THREE.Face3( 7, 9, 11 ) );
+
+        geometry.computeFaceNormals(); 
+        var mesh = new THREE.Mesh(geometry, this.materialIcosahedron);
+
+        for (let j=0; j<geometry.vertices.length; j++){
+            var v = geometry.vertices[j];
+            mesh.add(this.createPoint(v.x, v.y, v.z, j))
+        }
+
+        var geo = new THREE.EdgesGeometry( mesh.geometry );
+        var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
+        var wireframe = new THREE.LineSegments( geo, mat );
+        this._edge = wireframe;
+        mesh.add( wireframe );
+
+        mesh.position.set(0, pedestalHeight*3/2 + icosahedronSideLength*16/20, 0);
+        mesh.rotateX(Math.PI/8);
+        this.meshList.push(mesh);   
+
+    }
+
+    toggleEdges() {
+        this._showEdges = !this._showEdges;
+        //this._edge.visible = this._showEdges;
+        for (let k=0; k<this._pointList.length; k++) this._pointList[k].visible = this._showEdges;
+    }
+
+    createPoint(x,y,z, i) {
+        var dotGeometry = new THREE.Geometry();
+        dotGeometry.vertices.push(new THREE.Vector3( x, y, z));
+        var dotMaterial = new THREE.PointsMaterial( { size: 10, sizeAttenuation: false } );
+        var dot = new THREE.Points( dotGeometry, dotMaterial );
+        
+        var sprite = this.makeTextSprite(i.toString(), {fontsize: 64});
+        sprite.position.set( x,y,z );
+        dot.add( sprite );
+        this._pointList.push(dot);
+
+        return dot;
+    }
+
+    makeTextSprite(message, opts) {
+        var parameters = opts || {};
+        var fontface = parameters.fontface || 'Helvetica';
+        var fontsize = parameters.fontsize || 120;
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d');
+        context.font = fontsize + "px " + fontface;
+    
+        // get size data (height depends only on font size)
+        var metrics = context.measureText(message);
+        var textWidth = metrics.width;
+    
+        // text color
+        context.fillStyle = 'rgba(255, 255, 255, 1.0)';
+        context.fillText(message, 0, fontsize);
+    
+        // canvas contents will be used for a texture
+        var texture = new THREE.Texture(canvas)
+        texture.minFilter = THREE.LinearFilter;
+        texture.needsUpdate = true;
+    
+        var spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+        var sprite = new THREE.Sprite( spriteMaterial );
+        sprite.scale.set( 10, 5, 1.0 );
+        sprite.center.set( 0,1 );
+        return sprite;
+    }
+
+}
+
+// Cameras
 class OrtCamera extends THREE.OrthographicCamera {
     constructor(x, y, z, lookx, looky, looz) {
         super(width / -2 * viewSize, width / 2 * viewSize, 
@@ -129,6 +317,8 @@ class PerCamera extends THREE.PerspectiveCamera {
         this.lookAt(pos);
     }
 }
+
+// Creation
 
 function createWall() {
 	var wall = new Wall(wallWidth / 2, wallHeight / 2, objectDepth / 2, wallWidth, wallHeight)
@@ -183,6 +373,12 @@ function createFloor() {
     plane.rotateX( - Math.PI / 2);
     plane.position.set(0, 0, 50);
     scene.add(plane);
+
+}
+
+function createIcosahedron(x, y, z) {
+    icosahedron = new Icosahedron(x, y, z);
+    scene.add(icosahedron);
 }
 
 function createPerspectiveCamera() {
@@ -203,12 +399,15 @@ function createScene() {
     scene = new THREE.Scene();
     scene.add(new THREE.AxesHelper(100));
 
-    createFloor()
-    createWall()
-    createPaint()
-    createDots(10, 7)
-    createSquares(10, 7)
+    createFloor();
+    createWall();
+    createPaint();
+    createDots(10, 7);
+    createSquares(10, 7);
+    createIcosahedron(-65, 0, 0);
 }
+
+// Event listeners
 
 function onResize() {
     'use strict';
@@ -274,10 +473,14 @@ function onKeyDown(e) {
         case 54: //6 - Op Art camera
             currCamera = opArtCamera;
             break;
+        case 82: //r - Change edges of icosahedron
+            icosahedron.toggleEdges();
         default:
             break;
     }
 }
+
+// Core functions
 
 function animate(time) {
     'use strict';
