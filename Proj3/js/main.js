@@ -15,9 +15,14 @@ var wallColor = 0xbdbcba, wallWidth = 130, wallHeight = 100;
 var dotRadius = 1;
 var dotsColor = 0xffffff, paintColor = 0x858585, squareColor = 0x000000, frameColor = 0x653815;
 
+//Icosahedron
+var icosahedronColor = 0x159809, icosahedronSideLength = 15;
+var pedestalColor = frameColor, pedestalHeight = 30, pedestalRadius = 10;
+
 var width = window.innerWidth, height = window.innerHeight;
 var oldWidth = width, oldHeight = height;
 
+// Illusion
 class Dot extends THREE.Object3D {
     constructor() {
         super();
@@ -93,6 +98,86 @@ class Square extends THREE.Object3D {
     }
 } 
 
+// Icosahedron and pedestal
+class Icosahedron extends THREE.Object3D {
+    constructor(x, y, z) {
+        super();
+        this.position.set(x,y+0.2,z+pedestalRadius*2+5);
+
+        // Prepare materials
+        this.materialPedestal = new THREE.MeshBasicMaterial( {color: pedestalColor, wireframe: wireframeOn} );
+        materials.push(this.materialPedestal);
+
+        this.materialIcosahedron = new THREE.MeshBasicMaterial( {color: icosahedronColor, wireframe: wireframeOn, side: THREE.DoubleSide} );
+        materials.push(this.materialIcosahedron);
+
+        // Create meshes
+        this.meshList = [];
+        this.createPedestal();
+        this.createIcosahedron();
+
+        // Add all meshes to object3D
+        for (let i=0; i<this.meshList.length; i++) this.add(this.meshList[i]);
+
+        // Create wall
+        var wall = new Wall(-wallWidth / 2, wallHeight / 2, objectDepth / 2, wallWidth, wallHeight)
+	    scene.add(wall)
+
+    }
+
+    createPedestal() {
+        var geometry, mesh;
+
+        // Pedestal top basis
+        geometry = new THREE.CylinderGeometry( pedestalRadius*2, pedestalRadius, pedestalHeight/4, 16, 8);
+        mesh = new THREE.Mesh(geometry, this.materialPedestal);
+        mesh.position.set(0,9*pedestalHeight/8,0);
+        this.meshList.push(mesh);
+
+        // Pedestal cylinder
+        var geometry = new THREE.CylinderGeometry( pedestalRadius, pedestalRadius, pedestalHeight, 16, 8);
+        mesh = new THREE.Mesh(geometry, this.materialPedestal);
+        mesh.position.set(0,pedestalHeight/2+pedestalHeight/4,0);
+        this.meshList.push(mesh);
+
+        // Pedestal bottom basis
+        geometry = new THREE.CylinderGeometry( pedestalRadius, pedestalRadius*3/2, pedestalHeight/4, 16, 8);
+        mesh = new THREE.Mesh(geometry, this.materialPedestal);
+        mesh.position.set(0,pedestalHeight/8,0);
+        this.meshList.push(mesh);
+    }
+
+    createIcosahedron() {
+        var geometry, mesh;
+
+        // What the fuck way TODO
+        geometry = new THREE.Geometry();
+        var goldNum = (1+Math.sqrt(5))/2;
+        var aux = icosahedronSideLength;
+
+        var v1 = new THREE.Vector3(0, 0, 0);
+        var v2 = new THREE.Vector3(4*aux, 0, 0);
+        var v3 = new THREE.Vector3(2*aux, Math.sqrt(12)*aux, 0);
+        geometry.vertices.push(v1, v2, v3);
+
+        geometry.faces.push( new THREE.Face3( 0, 1, 2 ) );
+        geometry.computeFaceNormals();
+        mesh = new THREE.Mesh(geometry, this.materialIcosahedron);
+        mesh.position.set(0, 10, 30);
+        this.add(mesh);
+        this.meshList.push(mesh);
+
+        // Default way WRONG
+        geometry = new THREE.IcosahedronGeometry(icosahedronSideLength, 1);
+        mesh = new THREE.Mesh(geometry, this.materialIcosahedron);
+        mesh.position.set(0, pedestalHeight*3/2+icosahedronSideLength/4, 0);
+        this.add(mesh);
+        this.meshList.push(mesh);
+
+    }
+}
+
+// Cameras
 class OrtCamera extends THREE.OrthographicCamera {
     constructor(x, y, z, lookx, looky, looz) {
         super(width / -2 * viewSize, width / 2 * viewSize, 
@@ -129,6 +214,8 @@ class PerCamera extends THREE.PerspectiveCamera {
         this.lookAt(pos);
     }
 }
+
+// Creation
 
 function createWall() {
 	var wall = new Wall(wallWidth / 2, wallHeight / 2, objectDepth / 2, wallWidth, wallHeight)
@@ -183,6 +270,12 @@ function createFloor() {
     plane.rotateX( - Math.PI / 2);
     plane.position.set(0, 0, 50);
     scene.add(plane);
+
+}
+
+function createIcosahedron(x, y, z) {
+    var object = new Icosahedron(x, y, z);
+    scene.add(object);
 }
 
 function createPerspectiveCamera() {
@@ -203,12 +296,15 @@ function createScene() {
     scene = new THREE.Scene();
     scene.add(new THREE.AxesHelper(100));
 
-    createFloor()
-    createWall()
-    createPaint()
-    createDots(10, 7)
-    createSquares(10, 7)
+    createFloor();
+    createWall();
+    createPaint();
+    createDots(10, 7);
+    createSquares(10, 7);
+    createIcosahedron(-65, 0, 0);
 }
+
+// Event listeners
 
 function onResize() {
     'use strict';
@@ -278,6 +374,8 @@ function onKeyDown(e) {
             break;
     }
 }
+
+// Core functions
 
 function animate(time) {
     'use strict';
