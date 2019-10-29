@@ -352,6 +352,7 @@ function onKeyDown(e) {
             }
 
             lastUsedMaterial = lastUsedMaterial == "phong" ? "lambert" : "phong";
+            isBasicMaterial = 0;
             break;
         case 81: //Q - Toggle directional lights
             if (directionalLight.intensity == 1) directionalLight.intensity = 0;
