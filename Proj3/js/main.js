@@ -2,14 +2,13 @@ var scene, renderer, currCamera, viewSize = 4/5;
 var sceneCamera, opArtCamera, camera;
 var controls;
 
-var materials = [];
 var wireframeOn = false;
 
 //Scene
 var backgroundColor = 0x000000, floorColor = 0x727982, objectDepth = 1;
 
 //Wall
-var wallColor = 0xbdbcba, wallWidth = 130, wallHeight = 100;
+var wall, wallColor = 0xbdbcba, wallWidth = 130, wallHeight = 100;
 
 //Frame
 var dotRadius = 1;
@@ -18,13 +17,61 @@ var dotsColor = 0xffffff, paintColor = 0x858585, squareColor = 0x000000, frameCo
 var width = window.innerWidth, height = window.innerHeight;
 var oldWidth = width, oldHeight = height;
 
-class Dot extends THREE.Object3D {
+//Lights
+var directionalLight;
+
+class THREEJSObject extends THREE.Object3D {
     constructor() {
         super();
-        var geometry = new THREE.CylinderGeometry(dotRadius, dotRadius, objectDepth, 64, 1);
-        var material = new THREE.MeshBasicMaterial( {color:dotsColor, wireframe: wireframeOn} );
-        materials.push(material);
-        this.mesh = new THREE.Mesh(geometry, material);
+    }
+
+    createBasicMaterial(color) {
+        this.basicMaterial = new THREE.MeshBasicMaterial( {color:color, wireframe: wireframeOn} );
+    }
+
+    createPhongMaterial(color) {
+        this.phongMaterial = new THREE.MeshPhongMaterial( {color:color, wireframe: wireframeOn} );
+    }
+
+    createLambertMaterial(color) {
+        this.lambertMaterial = new THREE.MeshLambertMaterial( {color:color, wireframe: wireframeOn} );
+    }
+
+    setBasicMaterial() {
+        this.mesh.material = this.basicMaterial;
+    }
+
+    setPhongMaterial() {
+        this.mesh.material = this.phongMaterial;
+    }
+
+    setLambertMaterial() {
+        this.mesh.material = this.lambertMaterial;
+    }
+
+    getBasicMaterial() {
+        return this.basicMaterial;
+    }
+
+    getPhongMaterial() {
+        return this.phongMaterial;
+    }
+
+    getLambertMaterial() {
+        return this.lambertMaterial;
+    }
+}
+
+class Dot extends THREEJSObject {
+    constructor() {
+        super();
+        this.geometry = new THREE.CylinderGeometry(dotRadius, dotRadius, objectDepth, 64, 1);
+
+        this.createBasicMaterial(dotsColor);
+        this.createPhongMaterial(dotsColor);
+        this.createLambertMaterial(dotsColor);
+
+        this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
         this.mesh.rotateX(-Math.PI / 2);
         this.add(this.mesh);
     }
@@ -34,61 +81,69 @@ class Dot extends THREE.Object3D {
     }
 }
 
-class Wall extends THREE.Object3D {
+class Wall extends THREEJSObject {
     constructor(x, y, z, width, height) {
         super();
         this.position.set(x, y, z);
-
-        var material = new THREE.MeshBasicMaterial( {color: wallColor, wireframe: wireframeOn} );
-        materials.push(material);
         var geometry = new THREE.BoxGeometry(width, height, objectDepth);
-        this.mesh = new THREE.Mesh(geometry, material);
+
+        this.createBasicMaterial(wallColor);
+        this.createPhongMaterial(wallColor);
+        this.createLambertMaterial(wallColor);
+
+        this.mesh = new THREE.Mesh(geometry, this.getBasicMaterial());
         this.add(this.mesh);
     }
 }
 
-class Paint extends THREE.Object3D {
+class Paint extends THREEJSObject {
     constructor(x, y, z, width, height) {
         super();
         this.position.set(x, y, z);
-
-        var material = new THREE.MeshBasicMaterial( {color: paintColor, wireframe: wireframeOn} );
-        materials.push(material);
         var geometry = new THREE.BoxGeometry(width, height, objectDepth);
-        this.mesh = new THREE.Mesh(geometry, material);
+
+        this.createBasicMaterial(paintColor);
+        this.createPhongMaterial(paintColor);
+        this.createLambertMaterial(paintColor);
+
+        this.mesh = new THREE.Mesh(geometry, this.getPhongMaterial());
         this.add(this.mesh);
     }
 }
 
-class Frame extends THREE.Object3D {
+class Frame extends THREEJSObject {
     constructor(x, y, z, width, height) {
         super();
         this.position.set(x, y, z);
 
-        var material = new THREE.MeshBasicMaterial( {color: frameColor, wireframe: wireframeOn} );
-        
-        // solve Z-fighting problem
-        material.polygonOffset = true;
-        material.depthTest = true;
-        material.polygonOffsetFactor = 1;
-        material.polygonOffsetUnits = 0.1;
+        this.createBasicMaterial(frameColor);
+        this.createPhongMaterial(frameColor);
+        this.createLambertMaterial(frameColor);
        
-        materials.push(material);
         var geometry = new THREE.BoxGeometry(width, height, objectDepth * 3);
-        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh = new THREE.Mesh(geometry, this.getPhongMaterial());
+
+        // solve Z-fighting problem
+        this.mesh.material.polygonOffset = true;
+        this.mesh.material.depthTest = true;
+        this.mesh.material.polygonOffsetFactor = 1;
+        this.mesh.material.polygonOffsetUnits = 0.1;
+
         this.add(this.mesh);
     }
 }
 
-class Square extends THREE.Object3D {
+class Square extends THREEJSObject {
     constructor(x, y, z, width, height) {
         super();
         this.position.set(x, y, z);
-
-        var material = new THREE.MeshBasicMaterial( {color: squareColor, wireframe: wireframeOn} );
-        materials.push(material);
         var geometry = new THREE.BoxGeometry(width, height, objectDepth);
-        this.mesh = new THREE.Mesh(geometry, material);
+
+        this.createBasicMaterial(squareColor);
+        this.createPhongMaterial(squareColor);
+        this.createLambertMaterial(squareColor);
+
+        this.mesh = new THREE.Mesh(geometry, this.getPhongMaterial());
         this.add(this.mesh);
     }
 } 
@@ -131,7 +186,7 @@ class PerCamera extends THREE.PerspectiveCamera {
 }
 
 function createWall() {
-	var wall = new Wall(wallWidth / 2, wallHeight / 2, objectDepth / 2, wallWidth, wallHeight)
+	wall = new Wall(wallWidth / 2, wallHeight / 2, objectDepth / 2, wallWidth, wallHeight)
 	scene.add(wall)
 }
 
@@ -197,6 +252,14 @@ function createPerspectiveCamera() {
     camera.lookAt(0,0,0);
 }
 
+function createDirectionalLight() {
+    directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(0, 200, 200);
+    directionalLight.target = wall;
+    scene.add(directionalLight);
+    scene.add(directionalLight.target);
+}
+
 function createScene() {
     'use strict';
 
@@ -208,6 +271,7 @@ function createScene() {
     createPaint()
     createDots(10, 7)
     createSquares(10, 7)
+    createDirectionalLight();
 }
 
 function onResize() {
@@ -275,6 +339,10 @@ function onKeyDown(e) {
         case 54: //6 - Op Art camera
             currCamera = opArtCamera;
             break;
+        case 81: //Q - Toggle directional lights
+            if (directionalLight.intensity == 1) directionalLight.intensity = 0;
+            else directionalLight.intensity = 1;
+            break;
         default:
             break;
     }
@@ -292,6 +360,8 @@ function render() {
     'use strict';
     
     renderer.render(scene, currCamera);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.BasicShadowMap;
 }
 
 function init() {
