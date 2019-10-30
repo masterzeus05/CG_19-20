@@ -23,7 +23,7 @@ var width = window.innerWidth, height = window.innerHeight;
 var oldWidth = width, oldHeight = height;
 
 //Lights
-var directionalLight, switchingLights = false;
+var directionalLight, switchingLights = false, spotlights = [];
 
 var objects = [], lastUsedMaterial = "phong", isBasicMaterial = 0;;
 
@@ -161,6 +161,38 @@ class Square extends THREEJSObject {
         objects.push(this);
     }
 } 
+
+class Spotlight extends THREEJSObject {
+    constructor(x, y, z, rotx = 0, roty = 0, rotz = 0) {
+        super();
+        var coneGeometry = new THREE.ConeGeometry(5, 15, 20);
+        var coneMaterial = new THREE.MeshBasicMaterial({color: 0xFFA500, wireframe: wireframeOn});
+        var coneMesh = new THREE.Mesh(coneGeometry, coneMaterial);
+        this.position.set(x, y, z);
+        coneMesh.rotation.set(rotx, roty, rotz);
+        this.add(coneMesh);
+
+        var sphereGeometry = new THREE.SphereGeometry(5, 16, 16);
+        var sphereMaterial = new THREE.MeshBasicMaterial({color: 0xFFA500, wireframe: wireframeOn});
+        var sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphereMesh.position.set(0, -15 / 2, 0);
+        coneMesh.add(sphereMesh);
+
+        var spotLight = new THREE.SpotLight(0xffffff);
+        spotLight.position.set(0, -15 / 2, 0);
+
+        spotLight.castShadow = true;
+
+        spotLight.shadow.mapSize.width = 1024;
+        spotLight.shadow.mapSize.height = 1024;
+
+        spotLight.shadow.camera.near = 500;
+        spotLight.shadow.camera.far = 4000;
+        spotLight.shadow.camera.fov = 30;
+
+        scene.add( spotLight );
+    }
+}
 
 // Icosahedron and pedestal
 class Icosahedron extends THREEJSObject {
@@ -467,6 +499,17 @@ function createDirectionalLight() {
     scene.add(directionalLight.target);
 }
 
+function createSpotlights() {
+    var cone = new Spotlight(-75, 100, 100, Math.PI / 2 - 0.4);
+    scene.add(cone);
+    cone = new Spotlight(-25, 100, 100, Math.PI / 2 - 0.4);
+    scene.add(cone);
+    cone = new Spotlight(25, 100, 100, Math.PI / 2 - 0.4);
+    scene.add(cone);
+    cone = new Spotlight(75, 100, 100, Math.PI / 2 - 0.4);
+    scene.add(cone);
+}
+
 function createScene() {
     'use strict';
 
@@ -480,6 +523,7 @@ function createScene() {
     createSquares(10, 7)
     createDirectionalLight();
     createIcosahedron(-65, 0, 0);
+    createSpotlights();
 }
 
 // Event listeners
@@ -567,7 +611,7 @@ function onKeyDown(e) {
                         clearInterval(lightTimeout);
                         switchingLights = false;
                     }
-                }, 100);
+                }, 50);
             }
             else if (!switchingLights) {
                 switchingLights = true;
@@ -577,7 +621,7 @@ function onKeyDown(e) {
                         clearInterval(lightTimeout);
                         switchingLights = false;
                     }
-                }, 100);
+                }, 50);
             }
             break;
         case 82: //r - Change edges of icosahedron
