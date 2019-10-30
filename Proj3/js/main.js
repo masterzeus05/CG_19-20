@@ -14,6 +14,9 @@ var wall, wallColor = 0xbdbcba, wallWidth = 130, wallHeight = 100;
 var dotRadius = 1;
 var dotsColor = 0xffffff, paintColor = 0x858585, squareColor = 0x000000, frameColor = 0x653815;
 
+//Painting
+var painting;
+
 //Icosahedron
 var icosahedronColor = 0x159809, icosahedronSideLength = 10, icosahedronOffset = 1, icosahedronOpacity = 0.7;
 var pedestalColor = frameColor, pedestalHeight = 30, pedestalRadius = 10;
@@ -23,7 +26,7 @@ var width = window.innerWidth, height = window.innerHeight;
 var oldWidth = width, oldHeight = height;
 
 //Lights
-var directionalLight, switchingLights = false, spotlights = [];
+var directionalLight, switchingLights = false, spotlights = [], switchSpotlight1 = false, switchSpotlight2 = false, switchSpotlight3 = false, switchSpotlight4 = false;
 
 var objects = [], lastUsedMaterial = "phong", isBasicMaterial = 0;;
 
@@ -102,8 +105,9 @@ class Wall extends THREEJSObject {
         this.createPhongMaterial(wallColor);
         this.createLambertMaterial(wallColor);
 
-        this.mesh = new THREE.Mesh(geometry, this.getBasicMaterial());
+        this.mesh = new THREE.Mesh(geometry, this.getPhongMaterial());
         this.add(this.mesh);
+        objects.push(this);
     }
 }
 
@@ -178,19 +182,10 @@ class Spotlight extends THREEJSObject {
         sphereMesh.position.set(0, -15 / 2, 0);
         coneMesh.add(sphereMesh);
 
-        var spotLight = new THREE.SpotLight(0xffffff);
-        spotLight.position.set(0, -15 / 2, 0);
-
-        spotLight.castShadow = true;
-
-        spotLight.shadow.mapSize.width = 1024;
-        spotLight.shadow.mapSize.height = 1024;
-
-        spotLight.shadow.camera.near = 500;
-        spotLight.shadow.camera.far = 4000;
-        spotLight.shadow.camera.fov = 30;
-
+        var spotLight = new THREE.SpotLight(0xffffff, 1, 200, Math.PI / 6);
+        spotLight.position.set(x, y -15 / 2, z);
         scene.add( spotLight );
+        spotlights.push(spotLight);
     }
 }
 
@@ -203,7 +198,7 @@ class Icosahedron extends THREEJSObject {
         this._pointList = [];
 
         // Prepare materials
-        this.materialPedestal = new THREE.MeshBasicMaterial( {color: pedestalColor, wireframe: wireframeOn} );
+        this.materialPedestal = new THREE.MeshPhongMaterial( {color: pedestalColor, wireframe: wireframeOn} );
 
         // this.materialIcosahedron = new THREE.MeshBasicMaterial( {color: icosahedronColor, wireframe: wireframeOn, side: THREE.DoubleSide, 
         //     transparent:true, opacity: icosahedronOpacity} );
@@ -425,8 +420,8 @@ function createWall() {
 
 function createPaint() {
     let width = 110, height = 80
-    var paint = new Paint(width / 2 + 10, height / 2 + 10, objectDepth, width, height)
-    scene.add(paint)
+    painting = new Paint(width / 2 + 10, height / 2 + 10, objectDepth, width, height)
+    scene.add(painting)
 
     createFrame(9, (wallHeight - 20) / 2 + 10, objectDepth * 2, 3, wallHeight - 20)
     createFrame(9 + width + 2, (wallHeight - 20) / 2 + 10, objectDepth * 2, 3, wallHeight - 20)
@@ -466,7 +461,7 @@ function createSquares(width, height) {
 
 function createFloor() {
     var geometry = new THREE.PlaneGeometry(260, 100);
-    var material = new THREE.MeshBasicMaterial( {color: floorColor, side: THREE.DoubleSide} ); 
+    var material = new THREE.MeshPhongMaterial( {color: floorColor, side: THREE.DoubleSide} ); 
     var plane = new THREE.Mesh( geometry, material );
     plane.rotateX( - Math.PI / 2);
     plane.position.set(0, 0, 50);
@@ -502,12 +497,23 @@ function createDirectionalLight() {
 function createSpotlights() {
     var cone = new Spotlight(-75, 100, 100, Math.PI / 2 - 0.4);
     scene.add(cone);
+    scene.add(spotlights[0].target);
+    spotlights[0].target.position.set(-75, 98, 0);
+
     cone = new Spotlight(-25, 100, 100, Math.PI / 2 - 0.4);
     scene.add(cone);
+    scene.add(spotlights[1].target);
+    spotlights[1].target.position.set(-25, 98, 0);
+
     cone = new Spotlight(25, 100, 100, Math.PI / 2 - 0.4);
     scene.add(cone);
+    scene.add(spotlights[2].target);
+    spotlights[2].target.position.set(25, 98, 0);
+    
     cone = new Spotlight(75, 100, 100, Math.PI / 2 - 0.4);
     scene.add(cone);
+    scene.add(spotlights[3].target);
+    spotlights[3].target.position.set(75, 98, 0);
 }
 
 function createScene() {
@@ -524,6 +530,29 @@ function createScene() {
     createDirectionalLight();
     createIcosahedron(-65, 0, 0);
     createSpotlights();
+}
+
+function switchLights(light, toggle) {
+    if (light.intensity == 1 && !toggle) {
+        toggle = true;
+        var lightTimeout = setInterval(function() {
+            light.intensity -= 0.1;
+            if (light.intensity <= 0) {
+                clearInterval(lightTimeout);
+                toggle = false;
+            }
+        }, 50);
+    }
+    else if (!toggle) {
+        toggle = true;
+        var lightTimeout = setInterval(function() {
+            light.intensity += 0.1;
+            if (light.intensity >= 1) {
+                clearInterval(lightTimeout);
+                toggle = false;
+            }
+        }, 50);
+    }
 }
 
 // Event listeners
@@ -575,17 +604,17 @@ function onKeyDown(e) {
         case 48: //0 - Default Camera
             currCamera = camera;
             break;
-        case 48: //1 - Spotlight #1
-            //TODO toggler
+        case 49: //1 - Spotlight #1
+            switchLights(spotlights[0], switchSpotlight1);
             break;
-        case 48: //2 - Spotlight #2
-            //TODO toggler
+        case 50: //2 - Spotlight #2
+            switchLights(spotlights[1], switchSpotlight2);
             break;
-        case 48: //3 - Spotlight #3
-            //TODO toggler
+        case 51: //3 - Spotlight #3
+            switchLights(spotlights[2], switchSpotlight3);
             break;
-        case 48: //4 - Spotlight #4
-            //TODO toggler
+        case 52: //4 - Spotlight #4
+            switchLights(spotlights[3], switchSpotlight4);
             break;           
         case 53: //5 - Scene camera
             currCamera = sceneCamera;
@@ -671,7 +700,7 @@ function init() {
     createScene();
     createPerspectiveCamera();
     opArtCamera = new OrtCamera(0, 50, 50, 0, wallHeight / 2, 0);
-    sceneCamera = new PerCamera(0, 150, 150, 0, 0, 0);
+    sceneCamera = new PerCamera(0, 120, 180, 0, 0, 0);
 
     currCamera = camera;
     render();
