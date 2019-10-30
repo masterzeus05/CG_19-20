@@ -26,7 +26,7 @@ var width = window.innerWidth, height = window.innerHeight;
 var oldWidth = width, oldHeight = height;
 
 //Lights
-var directionalLight, switchingLights = false, spotlights = [], switchSpotlight1 = false, switchSpotlight2 = false, switchSpotlight3 = false, switchSpotlight4 = false;
+var directionalLight, switchingLights = false, spotlights = [], switchSpotlight = [false, false, false, false];
 
 var objects = [], lastUsedMaterial = "phong", isBasicMaterial = 0;;
 
@@ -92,6 +92,21 @@ class Dot extends THREEJSObject {
 
     setPosition(x, y, z) {
         this.position.set(x, y, z);
+    }
+}
+
+class Floor extends THREEJSObject {
+    constructor() {
+        super();
+        this.geometry = new THREE.PlaneGeometry(260, 100);
+        this.createBasicMaterial(floorColor);
+        this.createPhongMaterial(floorColor);
+        this.createLambertMaterial(floorColor); 
+        this.mesh = new THREE.Mesh( this.geometry, this.getPhongMaterial());
+        this.mesh.rotateX( - Math.PI / 2);
+        this.mesh.position.set(0, 0, 50);
+        this.add(this.mesh);
+        objects.push(this);
     }
 }
 
@@ -460,12 +475,8 @@ function createSquares(width, height) {
 }
 
 function createFloor() {
-    var geometry = new THREE.PlaneGeometry(260, 100);
-    var material = new THREE.MeshPhongMaterial( {color: floorColor, side: THREE.DoubleSide} ); 
-    var plane = new THREE.Mesh( geometry, material );
-    plane.rotateX( - Math.PI / 2);
-    plane.position.set(0, 0, 50);
-    scene.add(plane);
+    var floor = new Floor();
+    scene.add(floor);
 
 }
 
@@ -532,24 +543,24 @@ function createScene() {
     createSpotlights();
 }
 
-function switchLights(light, toggle) {
-    if (light.intensity == 1 && !toggle) {
-        toggle = true;
+function switchLights(light) {
+    if (spotlights[light].intensity == 1 && !switchSpotlight[light]) {
+        switchSpotlight[light] = true;
         var lightTimeout = setInterval(function() {
-            light.intensity -= 0.1;
-            if (light.intensity <= 0) {
+            spotlights[light].intensity -= 0.1;
+            if (spotlights[light].intensity <= 0) {
                 clearInterval(lightTimeout);
-                toggle = false;
+                switchSpotlight[light] = false;
             }
         }, 50);
     }
-    else if (!toggle) {
-        toggle = true;
+    else if (!switchSpotlight[light]) {
+        switchSpotlight[light] = true;
         var lightTimeout = setInterval(function() {
-            light.intensity += 0.1;
-            if (light.intensity >= 1) {
+            spotlights[light].intensity += 0.1;
+            if (spotlights[light].intensity >= 1) {
                 clearInterval(lightTimeout);
-                toggle = false;
+                switchSpotlight[light] = false;
             }
         }, 50);
     }
@@ -605,16 +616,16 @@ function onKeyDown(e) {
             currCamera = camera;
             break;
         case 49: //1 - Spotlight #1
-            switchLights(spotlights[0], switchSpotlight1);
+            switchLights(0);
             break;
         case 50: //2 - Spotlight #2
-            switchLights(spotlights[1], switchSpotlight2);
+            switchLights(1);
             break;
         case 51: //3 - Spotlight #3
-            switchLights(spotlights[2], switchSpotlight3);
+            switchLights(2);
             break;
         case 52: //4 - Spotlight #4
-            switchLights(spotlights[3], switchSpotlight4);
+            switchLights(3);
             break;           
         case 53: //5 - Scene camera
             currCamera = sceneCamera;
