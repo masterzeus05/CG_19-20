@@ -230,9 +230,6 @@ class Icosahedron extends THREEJSObject {
         // Add all meshes to object3D
         for (let i=0; i<this.meshList.length; i++) this.add(this.meshList[i]);
 
-        // Create wall
-        var wall = new Wall(-wallWidth / 2, wallHeight / 2, objectDepth / 2, wallWidth, wallHeight)
-	    scene.add(wall)
         objects.push(this);
     }
 
@@ -466,7 +463,10 @@ class PerCamera extends THREE.PerspectiveCamera {
 
 function createWall() {
 	wall = new Wall(wallWidth / 2, wallHeight / 2, objectDepth / 2, wallWidth, wallHeight)
-	scene.add(wall)
+    scene.add(wall)
+    
+    var wall2 = new Wall(-wallWidth / 2, wallHeight / 2, objectDepth / 2, wallWidth, wallHeight)
+	scene.add(wall2);
 }
 
 function createPaint() {
