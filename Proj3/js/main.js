@@ -19,7 +19,7 @@ var painting;
 
 //Icosahedron
 var icosahedronColor = 0x159809, icosahedronSideLength = 10, icosahedronOffset = 1, icosahedronOpacity = 0.7;
-var pedestalColor = frameColor, pedestalHeight = 30, pedestalRadius = 10;
+var pedestalColor = frameColor, pedestalHeight = 30, pedestalRadius = 10, edgesColor = 0x000000;
 var icosahedron, pedestal;
 
 var width = window.innerWidth, height = window.innerHeight;
@@ -355,13 +355,14 @@ class Pedestal extends THREEJSObject {
     constructor(x, y, z) {
         super();
         this.position.set(x,y+0.2,z+pedestalRadius*2+5);
-        this.meshList = [];
+        this.meshList = []; this.wireList = []
 
         this.createBasicMaterial(pedestalColor, THREE.DoubleSide);
         this.createPhongMaterial(pedestalColor, THREE.DoubleSide);
         this.createLambertMaterial(pedestalColor, THREE.DoubleSide);
 
         this.createPedestal();
+        this.setPhongMaterial();
 
         for (let i=0; i<this.meshList.length; i++) this.add(this.meshList[i]);        
         objects.push(this);
@@ -377,9 +378,10 @@ class Pedestal extends THREEJSObject {
         this.meshList.push(mesh);
 
         var geo = new THREE.EdgesGeometry( mesh.geometry );
-        var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
+        var mat = new THREE.LineBasicMaterial( { color: edgesColor, linewidth: 2 } );
         var wireframe = new THREE.LineSegments( geo, mat );
-        //mesh.add( wireframe );
+        mesh.add( wireframe );
+        this.wireList.push(wireframe);
 
         // Pedestal cylinder
         var geometry = new THREE.CylinderGeometry( pedestalRadius, pedestalRadius, pedestalHeight, 16, 8);
@@ -388,9 +390,10 @@ class Pedestal extends THREEJSObject {
         this.meshList.push(mesh);
 
         var geo = new THREE.EdgesGeometry( mesh.geometry );
-        var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
+        var mat = new THREE.LineBasicMaterial( { color: edgesColor, linewidth: 2 } );
         var wireframe = new THREE.LineSegments( geo, mat );
-        //mesh.add( wireframe );
+        mesh.add( wireframe );
+        this.wireList.push(wireframe);
 
         // Pedestal top basis
         geometry = new THREE.CylinderGeometry( pedestalRadius*2, pedestalRadius, pedestalHeight/4, 16, 8);
@@ -399,21 +402,25 @@ class Pedestal extends THREEJSObject {
         this.meshList.push(mesh);
 
         var geo = new THREE.EdgesGeometry( mesh.geometry );
-        var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 2 } );
+        var mat = new THREE.LineBasicMaterial( { color: edgesColor, linewidth: 2 } );
         var wireframe = new THREE.LineSegments( geo, mat );
-        //mesh.add( wireframe );
+        mesh.add(wireframe);
+        this.wireList.push(wireframe);
     }
 
     setBasicMaterial() {
         for (let i=0; i<this.meshList.length; i++) this.meshList[i].material = this.basicMaterial;
+        for (let i=0; i<this.wireList.length; i++) this.wireList[i].visible = true;
     }
 
     setPhongMaterial() {
         for (let i=0; i<this.meshList.length; i++) this.meshList[i].material = this.phongMaterial;
+        for (let i=0; i<this.wireList.length; i++) this.wireList[i].visible = false;
     }
 
     setLambertMaterial() {
         for (let i=0; i<this.meshList.length; i++) this.meshList[i].material = this.lambertMaterial;
+        for (let i=0; i<this.wireList.length; i++) this.wireList[i].visible = false;
     }
 }
 
