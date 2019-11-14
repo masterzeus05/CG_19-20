@@ -79,7 +79,7 @@ class Board extends THREEJSObject{
 	Cameras
 ==============================================================================*/
 
-var camera;
+var camera, currCamera;
 
 function createPerspectiveCamera() {
     'use strict';
@@ -100,9 +100,10 @@ function createPerspectiveCamera() {
 var directionalLight, pointLight;
 var toggleDirectionalLights = false, togglePointLights = false;
 var switchingDirectionalLights = false, switchingPointLights = false;
+var directionalLightColor = 0xffffff, pointLightColor = 0xffffff;
 
 function createDirectionalLight() {
-    directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight = new THREE.DirectionalLight(directionalLightColor, 1);
     directionalLight.position.set(0, 200, 200);
     directionalLight.target = board;
     scene.add(directionalLight);
@@ -110,7 +111,9 @@ function createDirectionalLight() {
 }
 
 function createPointLight() {
-	//TODO
+	pointLight = new THREE.PointLight( pointLightColor, 0, 100 );
+    pointLight.position.set( 50, 30, 50 );
+    scene.add(pointLight);
 }
 
 /*==============================================================================
@@ -200,7 +203,7 @@ function onKeyDown(e) {
             toggleMaterials = true;
             break;
         case 80: //P - Point light
-        	togglePointLight();
+            togglePointLights = true;
             break;
         case 82: //R - Reset
         	reset()
@@ -247,7 +250,7 @@ function toggleLightning() {
 }
 
 function toggleDirectionalLight() {
-    if (directionalLight.intensity == 1 && !switchingDirectionalLights) {
+    if (directionalLight.intensity >= 1 && !switchingDirectionalLights) {
         switchingDirectionalLights = true;
         var lightTimeout = setInterval(function() {
             directionalLight.intensity -= 0.1;
@@ -270,13 +273,37 @@ function toggleDirectionalLight() {
 }
 
 function togglePointLight() {
-	//TODO
+	if (pointLight.intensity >= 1 && !switchingPointLights) {
+        switchingPointLights = true;
+        var lightTimeout = setInterval(function() {
+            pointLight.intensity -= 0.1;
+            if (pointLight.intensity <= 0) {
+                clearInterval(lightTimeout);
+                switchingPointLights = false;
+            }
+        }, 50);
+    }
+    else if (!switchingPointLights) {
+        switchingPointLights = true;
+        var lightTimeout = setInterval(function() {
+            pointLight.intensity += 0.1;
+            if (pointLight.intensity >= 1) {
+                clearInterval(lightTimeout);
+                switchingPointLights = false;
+            }
+        }, 50);
+    }
 }
 
 function checkChanges() {
     if (toggleDirectionalLights) {
         toggleDirectionalLights = false;
         toggleDirectionalLight();
+    }
+
+    if (togglePointLights) {
+        togglePointLights = false;
+        togglePointLight();
     }
 
     if (toggleMaterials) {
@@ -302,7 +329,7 @@ function animate(time) {
 function render() {
     'use strict';
     
-    renderer.render(scene, camera);
+    renderer.render(scene, currCamera);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.BasicShadowMap;
 }
@@ -319,6 +346,7 @@ function init() {
     createScene();
     createPerspectiveCamera();
 
+    currCamera = camera;
     render();
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
