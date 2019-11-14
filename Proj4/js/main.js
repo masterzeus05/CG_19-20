@@ -1,5 +1,5 @@
 var scene, renderer, viewSize = 4/5;
-var controls;
+var controls, objects = [];
 
 var wireframeOn = false, isPaused = false;
 
@@ -11,6 +11,69 @@ var oldWidth = width, oldHeight = height;
 /*==============================================================================
 	Modulation
 ==============================================================================*/
+class THREEJSObject extends THREE.Object3D {
+    constructor() {
+        super();
+    }
+
+    createBasicMaterial(texture, color = 0xffffff) {
+        this.basicMaterial = new THREE.MeshBasicMaterial( {color: color, side: THREE.DoubleSide, map: texture, wireframe: wireframeOn} );
+    }
+
+    createPhongMaterial(texture, bumpMap, color = 0xffffff) {
+        this.phongMaterial = new THREE.MeshPhongMaterial( {color: 0xffffff, side: THREE.DoubleSide, map: texture, bumpMap: bumpMap, wireframe: wireframeOn} );
+    }
+
+    createLambertMaterial(color = 0xffffff, texture, bumpMap) {
+        this.lambertMaterial = new THREE.MeshLambertMaterial( {color: color, side: THREE.DoubleSide, map: texture, bumpMap: bumpMap, wireframe: wireframeOn} );
+    }
+
+    setBasicMaterial() {
+        this.mesh.material = this.basicMaterial;
+    }
+
+    setPhongMaterial() {
+        this.mesh.material = this.phongMaterial;
+    }
+
+    setLambertMaterial() {
+        this.mesh.material = this.lambertMaterial;
+    }
+
+    getBasicMaterial() {
+        return this.basicMaterial;
+    }
+
+    getPhongMaterial() {
+        return this.phongMaterial;
+    }
+
+    getLambertMaterial() {
+        return this.lambertMaterial;
+    }
+
+    changeWireframe() {
+        this.basicMaterial.wireframe = wireframeOn;
+        this.phongMaterial.wireframe = wireframeOn;
+        //this.lambertMaterial.wireframe = wireframeOn;
+    }
+}
+
+class Board extends THREEJSObject{
+    constructor() {
+        super();
+        this.boardtexture = new textureLoader.load("resources/chess_texture.jpg");
+        this.boardBumpMap = new textureLoader.load("resources/wood_bump_map.jpg");
+        this.geometry = new THREE.PlaneGeometry(100 , 100, 10, 10);
+        this.createBasicMaterial(this.boardtexture);
+        this.createPhongMaterial(this.boardtexture, this.boardBumpMap);
+        this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
+        this.mesh.rotateX( - Math.PI / 2);
+        this.add(this.mesh);
+        this.position.set(50, 0, 50);
+        objects.push(this);
+    }
+}
 
 /*==============================================================================
 	Cameras
@@ -35,9 +98,15 @@ function createPerspectiveCamera() {
 ==============================================================================*/
 
 var directionalLight, pointLight;
+var toggleDirectionalLights = false, togglePointLights = false;
+var switchingDirectionalLights = false, switchingPointLights = false;
 
 function createDirectionalLight() {
-    //TODO
+    directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(0, 200, 200);
+    directionalLight.target = board;
+    scene.add(directionalLight);
+    scene.add(directionalLight.target);
 }
 
 function createPointLight() {
@@ -47,6 +116,8 @@ function createPointLight() {
 /*==============================================================================
 	Scene Creation
 ==============================================================================*/
+var board, toggleMaterials = false, isBasicMaterial = 0, toggleWire = false; 
+var textureLoader = new THREE.TextureLoader();
 
 function createScene() {
     'use strict';
@@ -54,17 +125,11 @@ function createScene() {
     scene = new THREE.Scene();
     scene.add(new THREE.AxesHelper(100));
 
-    createFloor();
     createBoard();
     createBall();
     createDice();
     createDirectionalLight();
     createPointLight();
-}
-
-// uses texture + bump map
-function createBoard() {
-	//TODO
 }
 
 // uses texture
@@ -77,18 +142,10 @@ function createDice() {
 	//TODO
 }
 
-function createFloor() {
-	var geometry = new THREE.PlaneGeometry(100 , 100, 10, 10);
-    var material = new THREE.MeshBasicMaterial({
-    		color: 0x808080, 
-    		side: THREE.DoubleSide
-    	}
-    );
-    
-    var plane = new THREE.Mesh( geometry, material );
-    plane.rotateX( - Math.PI / 2);
-    plane.position.set(50, 0, 50);
-    scene.add( plane );
+// uses texture + bump map
+function createBoard() {
+    board = new Board();
+    scene.add(board);
 }
 
 /*==============================================================================
@@ -137,10 +194,10 @@ function onKeyDown(e) {
         	toggleBallMovement();
             break;
         case 68: //D - Directional light
-        	toggleDirectionalLight();
+            toggleDirectionalLights = true;
             break;
         case 76: //L - Lightning
-        	toggleLightning();
+            toggleMaterials = true;
             break;
         case 80: //P - Point light
         	togglePointLight();
@@ -152,7 +209,7 @@ function onKeyDown(e) {
         	toggleAnimation();
             break;
         case 87: //W - Wireframe
-        	toggleWireframe();
+            toggleWire = true;
             break;
         default:
             break;
@@ -174,25 +231,70 @@ function toggleAnimation() {
 }
 
 function toggleWireframe() {
-	wireframeOn = !wireframeOn
+    wireframeOn = !wireframeOn;
+    for (var i = 0; i < objects.length; i++) {
+        objects[i].changeWireframe();
+    }
 }
 
 function toggleLightning() {
-	//TODO
+	for (var i = 0; i < objects.length; i++) {
+        if (!isBasicMaterial) objects[i].setBasicMaterial();
+        else objects[i].setPhongMaterial();
+    }
+
+    isBasicMaterial = isBasicMaterial == 0 ? 1 : 0;
 }
 
 function toggleDirectionalLight() {
-	//TODO
+    if (directionalLight.intensity == 1 && !switchingDirectionalLights) {
+        switchingDirectionalLights = true;
+        var lightTimeout = setInterval(function() {
+            directionalLight.intensity -= 0.1;
+            if (directionalLight.intensity <= 0) {
+                clearInterval(lightTimeout);
+                switchingDirectionalLights = false;
+            }
+        }, 50);
+    }
+    else if (!switchingDirectionalLights) {
+        switchingDirectionalLights = true;
+        var lightTimeout = setInterval(function() {
+            directionalLight.intensity += 0.1;
+            if (directionalLight.intensity >= 1) {
+                clearInterval(lightTimeout);
+                switchingDirectionalLights = false;
+            }
+        }, 50);
+    }
 }
 
 function togglePointLight() {
 	//TODO
 }
 
+function checkChanges() {
+    if (toggleDirectionalLights) {
+        toggleDirectionalLights = false;
+        toggleDirectionalLight();
+    }
+
+    if (toggleMaterials) {
+        toggleMaterials = false;
+        toggleLightning();
+    }
+
+    if (toggleWire) {
+        toggleWire = false;
+        toggleWireframe();
+    }
+}
+
 function animate(time) {
     'use strict';
 
     controls.update();
+    checkChanges();
     render();
     requestAnimationFrame(animate);
 }
