@@ -1,16 +1,13 @@
-var scene, pauseHUD, renderer, viewSize = 4/5;
-var controls, objects = [];
-
-var timePrev, isPaused = false;
-
-var backgroundColor = 0x000000;
-
-var width = window.innerWidth, height = window.innerHeight;
-var oldWidth = width, oldHeight = height;
+/*
+// main.js - Proj4
+// Computação Gráfica, Grupo 22 2018-19
+*/
 
 /*==============================================================================
 	Modulation
 ==============================================================================*/
+
+var objects = [];
 
 class THREEJSObject extends THREE.Object3D {
     constructor() {
@@ -70,10 +67,10 @@ class THREEJSObject extends THREE.Object3D {
         return this.lambertMaterial;
     }
 
-    changeWireframe() {
+    toggleWireframe() {
         this.basicMaterial.wireframe = !this.basicMaterial.wireframe;
         this.phongMaterial.wireframe = !this.phongMaterial.wireframe;
-        //this.lambertMaterial.wireframe = wireframeOn;
+        //this.lambertMaterial.wireframe = !this.lambertMaterial.wireframe;
     }
 }
 
@@ -88,18 +85,17 @@ class Board extends THREEJSObject {
         this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
         this.mesh.rotateX( - Math.PI / 2);
         this.add(this.mesh);
-        this.position.set(50, 0, 50);
+        this.position.set(0, 0, 0);
         objects.push(this);
     }
 }
 
 class Dice extends THREEJSObject {
-    constructor(rotationSpeed) {
+    constructor() {
         super();
         this.geometry = new THREE.CubeGeometry(10, 10, 10);
         this.texture = new textureLoader.load("resources/dice-bumpmap.jpg");
         this.bumpMap = this.texture;
-        this.rotationSpeed = rotationSpeed
         this.rotationAxis = new THREE.Vector3(0, 1, 0)
 
         this.faces = []
@@ -113,7 +109,7 @@ class Dice extends THREEJSObject {
         this.mesh.rotateZ(Math.PI / 4);
         this.add(this.mesh);
         
-        this.position.set(50, 8.6, 50);
+        this.position.set(0, 8.6, 0);
         objects.push(this);
     }
 
@@ -154,7 +150,12 @@ class Dice extends THREEJSObject {
 	Cameras
 ==============================================================================*/
 
-var camera, pauseCamera, currCamera;
+var camera, pauseCamera;
+
+function createCameras() {
+    createOrthographicCamera();
+    createPerspectiveCamera();
+}
 
 function createOrthographicCamera() {
 	var width = window.innerWidth;
@@ -185,6 +186,7 @@ function createPerspectiveCamera() {
 ==============================================================================*/
 
 var directionalLight, pointLight;
+
 var toggleDirectionalLights = false, togglePointLights = false;
 var switchingDirectionalLights = false, switchingPointLights = false;
 var directionalLightColor = 0xffffff, pointLightColor = 0xffffff;
@@ -198,8 +200,8 @@ function createDirectionalLight() {
 }
 
 function createPointLight() {
-	pointLight = new THREE.PointLight( pointLightColor, 0, 100 );
-    pointLight.position.set( 50, 30, 50 );
+	pointLight = new THREE.PointLight( pointLightColor, 0, 100);
+    pointLight.position.set(0, 30, 0);
     scene.add(pointLight);
 }
 
@@ -208,14 +210,16 @@ function createPointLight() {
 ==============================================================================*/
 
 var board, dice, overlay;
-var toggleMaterials = false, isBasicMaterial = 0, toggleWire = false; 
+
+var toggleMaterials = false, isBasicMaterial = false, toggleWire = false;
+var backgroundColor = 0x000000;
 var textureLoader = new THREE.TextureLoader();
 
 function createScene() {
     'use strict';
 
     scene = new THREE.Scene();
-    scene.add(new THREE.AxesHelper(100));
+    //scene.add(new THREE.AxesHelper(100));
 
     createBoard();
     createBall();
@@ -253,7 +257,7 @@ function createBall() {
 }
 
 function createDice() {
-	dice = new Dice(0.1);
+	dice = new Dice();
 	scene.add(dice);
 }
 
@@ -266,10 +270,16 @@ function createBoard() {
 	Event Listeners
 ==============================================================================*/
 
+var togglePause = false, toggleBallMovement = false, shouldReset = false;
+var width = window.innerWidth, height = window.innerHeight, viewSize = 4/5;
+
 function onResize() {
     'use strict';
     
-    var angle = oldWidth / oldHeight;
+    var oldWidth = width;
+    var oldHeight = height;
+
+    var angle = width / height;
     var windowVector = new THREE.Vector3(0,0,0);
 
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -312,7 +322,7 @@ function onKeyDown(e) {
 
     switch(e.keyCode) {
         case 66: //B - Ball's movement 
-        	toggleBallMovement();
+        	toggleBallMovement = true;
             break;
         case 68: //D - Directional light
             toggleDirectionalLights = true;
@@ -324,10 +334,10 @@ function onKeyDown(e) {
             togglePointLights = true;
             break;
         case 82: //R - Reset
-        	reset()
+        	shouldReset = true;
             break;
         case 83: //S - Start/Stop
-        	isPaused = !isPaused
+        	togglePause = true;
             break;
         case 87: //W - Wireframe
             toggleWire = true;
@@ -338,27 +348,72 @@ function onKeyDown(e) {
 }
 
 /*==============================================================================
-	Core functions
+	Update scenes
 ==============================================================================*/
 
+var timePrev, isPaused = false;
+
+function update(delta) {
+    updateStatus();
+
+    if (!isPaused) { updateWorld(delta) }
+}
+
+function updateStatus() {
+    if (togglePause) {
+        togglePause = false;
+        isPaused = !isPaused;
+    }
+
+    if (shouldReset) {
+        shouldReset = false;
+        reset();
+    }
+}
+
+function updateWorld(delta) {
+    dice.rotate(delta);
+
+    if (toggleDirectionalLights) {
+        toggleDirectionalLights = false;
+        toggleDirectionalLight();
+    }
+
+    if (togglePointLights) {
+        togglePointLights = false;
+        togglePointLight();
+    }
+
+    if (toggleMaterials) {
+        toggleMaterials = false;
+        toggleLightning();
+    }
+
+    if (toggleWire) {
+        toggleWire = false;
+        toggleWireframe();
+    }
+}
+
 function reset() {
-	if (!isPaused) { return }
 	//TODO
 }
 
 function toggleWireframe() {
     for (var i = 0; i < objects.length; i++) {
-        objects[i].changeWireframe();
+        objects[i].toggleWireframe();
     }
 }
 
 function toggleLightning() {
 	for (var i = 0; i < objects.length; i++) {
-        if (!isBasicMaterial) objects[i].setBasicMaterial();
-        else objects[i].setPhongMaterial();
+        if (!isBasicMaterial)
+            objects[i].setBasicMaterial();
+        else
+            objects[i].setPhongMaterial();
     }
 
-    isBasicMaterial = isBasicMaterial == 0 ? 1 : 0;
+    isBasicMaterial = !isBasicMaterial;
 }
 
 function toggleDirectionalLight() {
@@ -407,33 +462,11 @@ function togglePointLight() {
     }
 }
 
-function checkChanges() {
-    if (toggleDirectionalLights) {
-        toggleDirectionalLights = false;
-        toggleDirectionalLight();
-    }
+/*==============================================================================
+    Core functions
+==============================================================================*/
 
-    if (togglePointLights) {
-        togglePointLights = false;
-        togglePointLight();
-    }
-
-    if (toggleMaterials) {
-        toggleMaterials = false;
-        toggleLightning();
-    }
-
-    if (toggleWire) {
-        toggleWire = false;
-        toggleWireframe();
-    }
-}
-
-function update(delta) {
-    if (!isPaused) { 
-        dice.rotate(delta)
-    }
-}
+var scene, pauseHUD, renderer, controls;
 
 function animate(time) {
     'use strict';
@@ -442,7 +475,6 @@ function animate(time) {
 
     controls.update();
     update(delta);
-    checkChanges();
     render();
     
     timePrev = time;
@@ -452,10 +484,10 @@ function animate(time) {
 function render() {
     'use strict';
     
-    renderer.autoClear = false; // To allow render overlay
+    renderer.autoClear = false; // render overlay on top of main scene
 
     renderer.clear();
-    renderer.render(scene, currCamera);
+    renderer.render(scene, camera);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.BasicShadowMap;
 
@@ -474,13 +506,10 @@ function init() {
 
     document.body.appendChild(renderer.domElement);
 
-    createOrthographicCamera();
-    createPerspectiveCamera();
-
     createScene();
+    createCameras();
     createPauseHUD();
     
-    currCamera = camera;
     render();
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
