@@ -194,7 +194,6 @@ function createPerspectiveCamera() {
 ==============================================================================*/
 
 var directionalLight, pointLight;
-
 var switchingDirectionalLights = false, switchingPointLights = false;
 var directionalLightColor = 0xffffff, pointLightColor = 0xffffff;
 
@@ -217,9 +216,6 @@ function createPointLight() {
 ==============================================================================*/
 
 var board, dice, overlay;
-
-var isBasicMaterial = false;
-var backgroundColor = 0x000000;
 var textureLoader = new THREE.TextureLoader();
 
 function createScene() {
@@ -354,7 +350,8 @@ function onKeyDown(e) {
 	Update scenes
 ==============================================================================*/
 
-var timePrev, isPaused = false;
+var timePrev;
+var isPaused = false, isBasicMaterial = false;
 
 function update(delta) {
     updateStatus();
@@ -476,6 +473,7 @@ function togglePointLight() {
 ==============================================================================*/
 
 var scene, pauseHUD, renderer, controls;
+var backgroundColor = 0x000000;
 
 function animate(time) {
     'use strict';
