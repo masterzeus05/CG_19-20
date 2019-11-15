@@ -3,12 +3,21 @@
 // Computação Gráfica, Grupo 22 2019-20
 */
 
-/*
-// TODOs
+/* PG
+// TODOs 
 // Fix pause overlay resize
 // Edit dice texture
 // Reset dice
 // Review delta
+*/
+
+/*  DG
+//  TODO:
+//  Add ball
+//  Add texture
+//  Rotate Ball
+//  Ball's Acceleration and De--
+//  Reset the ball
 */
 
 /*==============================================================================
