@@ -1,7 +1,7 @@
 var scene, pauseHUD, renderer, viewSize = 4/5;
 var controls, objects = [];
 
-var isPaused = false;
+var timePrev, isPaused = false;
 
 var backgroundColor = 0x000000;
 
@@ -144,8 +144,9 @@ class Dice extends THREEJSObject {
 		}
     }
 
-    rotate() {
-		dice.rotateOnAxis(this.rotationAxis, this.rotationSpeed);
+    rotate(delta) {
+        if (delta > 0)
+		    dice.rotateOnAxis(this.rotationAxis, delta);
 	}
 }
 
@@ -428,16 +429,23 @@ function checkChanges() {
     }
 }
 
+function update(delta) {
+    if (!isPaused) { 
+        dice.rotate(delta)
+    }
+}
+
 function animate(time) {
     'use strict';
 
-    if (!isPaused) { 
-    	controls.update();
-    	checkChanges();
-    	dice.rotate()
-    }
+    var delta = (time - timePrev) / 100;
 
+    controls.update();
+    update(delta);
+    checkChanges();
     render();
+    
+    timePrev = time;
     requestAnimationFrame(animate);
 }
 
