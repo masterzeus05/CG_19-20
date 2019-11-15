@@ -1,7 +1,7 @@
-var scene, renderer, viewSize = 4/5;
+var scene, pauseHUD, renderer, viewSize = 4/5;
 var controls, objects = [];
 
-var wireframeOn = false, isPaused = false;
+var isPaused = false;
 
 var backgroundColor = 0x000000;
 
@@ -11,21 +11,39 @@ var oldWidth = width, oldHeight = height;
 /*==============================================================================
 	Modulation
 ==============================================================================*/
+
 class THREEJSObject extends THREE.Object3D {
     constructor() {
         super();
     }
 
     createBasicMaterial(texture, color = 0xffffff) {
-        this.basicMaterial = new THREE.MeshBasicMaterial( {color: color, side: THREE.DoubleSide, map: texture, wireframe: wireframeOn} );
+        this.basicMaterial = new THREE.MeshBasicMaterial( {
+        	color: color,
+        	side: THREE.DoubleSide,
+        	map: texture,
+        	wireframe: false
+        } );
     }
 
     createPhongMaterial(texture, bumpMap, color = 0xffffff) {
-        this.phongMaterial = new THREE.MeshPhongMaterial( {color: 0xffffff, side: THREE.DoubleSide, map: texture, bumpMap: bumpMap, wireframe: wireframeOn} );
+        this.phongMaterial = new THREE.MeshPhongMaterial( {
+        	color: 0xffffff,
+        	side: THREE.DoubleSide,
+        	map: texture,
+        	bumpMap: bumpMap,
+        	wireframe: false
+        } );
     }
 
     createLambertMaterial(color = 0xffffff, texture, bumpMap) {
-        this.lambertMaterial = new THREE.MeshLambertMaterial( {color: color, side: THREE.DoubleSide, map: texture, bumpMap: bumpMap, wireframe: wireframeOn} );
+        this.lambertMaterial = new THREE.MeshLambertMaterial( {
+        	color: color,
+        	side: THREE.DoubleSide,
+        	map: texture,
+        	bumpMap: bumpMap,
+        	wireframe: false
+        } );
     }
 
     setBasicMaterial() {
@@ -53,20 +71,20 @@ class THREEJSObject extends THREE.Object3D {
     }
 
     changeWireframe() {
-        this.basicMaterial.wireframe = wireframeOn;
-        this.phongMaterial.wireframe = wireframeOn;
+        this.basicMaterial.wireframe = !this.basicMaterial.wireframe;
+        this.phongMaterial.wireframe = !this.phongMaterial.wireframe;
         //this.lambertMaterial.wireframe = wireframeOn;
     }
 }
 
-class Board extends THREEJSObject{
+class Board extends THREEJSObject {
     constructor() {
         super();
-        this.boardtexture = new textureLoader.load("resources/chess_texture.jpg");
-        this.boardBumpMap = new textureLoader.load("resources/wood_bump_map.jpg");
+        this.texture = new textureLoader.load("resources/chess_texture.jpg");
+        this.bumpMap = new textureLoader.load("resources/wood_bump_map.jpg");
         this.geometry = new THREE.PlaneGeometry(100 , 100, 10, 10);
-        this.createBasicMaterial(this.boardtexture);
-        this.createPhongMaterial(this.boardtexture, this.boardBumpMap);
+        this.createBasicMaterial(this.texture);
+        this.createPhongMaterial(this.texture, this.bumpMap);
         this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
         this.mesh.rotateX( - Math.PI / 2);
         this.add(this.mesh);
@@ -75,11 +93,79 @@ class Board extends THREEJSObject{
     }
 }
 
+class Dice extends THREEJSObject {
+    constructor(rotationSpeed) {
+        super();
+        this.geometry = new THREE.CubeGeometry(10, 10, 10);
+        this.texture = new textureLoader.load("resources/dice-bumpmap.jpg");
+        this.bumpMap = this.texture;
+        this.rotationSpeed = rotationSpeed
+        this.rotationAxis = new THREE.Vector3(0, 1, 0)
+
+        this.faces = []
+		this.mapTextures()
+
+        this.createBasicMaterial(this.texture);
+        this.createPhongMaterial(this.texture, this.bumpMap);
+        
+        this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
+        this.mesh.rotateX( Math.PI / 4);
+        this.mesh.rotateZ(Math.PI / 4);
+        this.add(this.mesh);
+        
+        this.position.set(50, 8.6, 50);
+        objects.push(this);
+    }
+
+    mapTextures() {
+    	// Iterate over the texture to separate the dice's faces.
+		for (var x = 0.0; x < 1; x += 0.5) {
+			var bottom = 2/3
+			for (var i = 0; i < 3; i++) {
+				var face = [
+					new THREE.Vector2(x, bottom),
+					new THREE.Vector2(x, bottom + 1/3),
+					new THREE.Vector2(x + 0.5, bottom + 1/3),
+					new THREE.Vector2(x + 0.5, bottom)
+				];
+
+				this.faces.push(face)
+				bottom -= 1/3;
+			}
+		}
+
+		// Insert in order.
+		this.geometry.faceVertexUvs[0] = []; 
+		for (i in [3, 2, 4, 1, 5, 0]) {
+			if (this.faces[i]) { var face = this.faces[i] }
+			
+			this.geometry.faceVertexUvs[0].push([face[0], face[1], face[3]])
+			this.geometry.faceVertexUvs[0].push([face[1], face[2], face[3]])
+		}
+    }
+
+    rotate() {
+		dice.rotateOnAxis(this.rotationAxis, this.rotationSpeed);
+	}
+}
+
 /*==============================================================================
 	Cameras
 ==============================================================================*/
 
-var camera, currCamera;
+var camera, pauseCamera, currCamera;
+
+function createOrthographicCamera() {
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+
+	pauseCamera = new THREE.OrthographicCamera(
+		-width / 2, width / 2,
+		height / 2, -height / 2,
+		1, 10
+	);
+    pauseCamera.position.z = 10;
+}
 
 function createPerspectiveCamera() {
     'use strict';
@@ -119,7 +205,9 @@ function createPointLight() {
 /*==============================================================================
 	Scene Creation
 ==============================================================================*/
-var board, toggleMaterials = false, isBasicMaterial = 0, toggleWire = false; 
+
+var board, dice, overlay;
+var toggleMaterials = false, isBasicMaterial = 0, toggleWire = false; 
 var textureLoader = new THREE.TextureLoader();
 
 function createScene() {
@@ -135,17 +223,39 @@ function createScene() {
     createPointLight();
 }
 
+function createPauseHUD() {
+    'use strict';
+
+    pauseHUD = new THREE.Scene();
+    
+	var textureLoader = new THREE.TextureLoader();
+	textureLoader.load("resources/paused.png", createPauseOverlay);
+}
+
+function createPauseOverlay(texture) {
+	var material = new THREE.SpriteMaterial( { map: texture } );
+
+	overlay = new THREE.Sprite(material);
+	overlay.position.set(0, 0, 1);
+	overlay.scale.set(
+		material.map.image.width,
+		material.map.image.height,
+		1
+	);
+
+	pauseHUD.add(overlay);
+}
+
 // uses texture
 function createBall() {
 	//TODO
 }
 
-// uses texture + bump map
 function createDice() {
-	//TODO
+	dice = new Dice(0.1);
+	scene.add(dice);
 }
 
-// uses texture + bump map
 function createBoard() {
     board = new Board();
     scene.add(board);
@@ -185,6 +295,13 @@ function onResize() {
         camera.updateProjectionMatrix();
     }
 
+    // Updates pause overlay
+	pauseCamera.left = - width / 2;
+	pauseCamera.right = width / 2;
+	pauseCamera.top = height / 2;
+	pauseCamera.bottom = - height / 2;
+	pauseCamera.updateProjectionMatrix();
+
     oldWidth = width;
     oldHeight = height;
 }
@@ -209,7 +326,7 @@ function onKeyDown(e) {
         	reset()
             break;
         case 83: //S - Start/Stop
-        	toggleAnimation();
+        	isPaused = !isPaused
             break;
         case 87: //W - Wireframe
             toggleWire = true;
@@ -224,17 +341,11 @@ function onKeyDown(e) {
 ==============================================================================*/
 
 function reset() {
-	
 	if (!isPaused) { return }
 	//TODO
 }
 
-function toggleAnimation() {
-	isPaused = !isPaused
-}
-
 function toggleWireframe() {
-    wireframeOn = !wireframeOn;
     for (var i = 0; i < objects.length; i++) {
         objects[i].changeWireframe();
     }
@@ -320,8 +431,12 @@ function checkChanges() {
 function animate(time) {
     'use strict';
 
-    controls.update();
-    checkChanges();
+    if (!isPaused) { 
+    	controls.update();
+    	checkChanges();
+    	dice.rotate()
+    }
+
     render();
     requestAnimationFrame(animate);
 }
@@ -329,9 +444,17 @@ function animate(time) {
 function render() {
     'use strict';
     
+    renderer.autoClear = false; // To allow render overlay
+
+    renderer.clear();
     renderer.render(scene, currCamera);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.BasicShadowMap;
+
+    if (isPaused) {
+    	renderer.clearDepth();
+    	renderer.render(pauseHUD, pauseCamera);
+    }
 }
 
 function init() {
@@ -343,9 +466,12 @@ function init() {
 
     document.body.appendChild(renderer.domElement);
 
-    createScene();
+    createOrthographicCamera();
     createPerspectiveCamera();
 
+    createScene();
+    createPauseHUD();
+    
     currCamera = camera;
     render();
 
