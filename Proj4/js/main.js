@@ -103,46 +103,49 @@ class Dice extends THREEJSObject {
 
         this.createBasicMaterial(this.texture);
         this.createPhongMaterial(this.texture, this.bumpMap);
-        
         this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
-        this.mesh.rotateX( Math.PI / 4);
-        this.mesh.rotateZ(Math.PI / 4);
+
+        // Note: expensive operations turned into const
+        // Angle (radian) for second rotation given by:
+        // THREE.Math.degToRad(Math.atan(1 / Math.sqrt(2)) * 180 / Math.PI)
+        const rotZ = 0.6154797086703874;    
+        this.mesh.rotateX(Math.PI / 4);
+        this.rotateZ(rotZ)
         this.add(this.mesh);
         
-        this.position.set(0, 8.6, 0);
+        // Distance d between dice cornes given by:
+        // 10 * Math.sqrt(3)
+        const height = 17.32050807568877;
+        this.position.set(0, height / 2, 0);
         objects.push(this);
     }
 
     mapTextures() {
     	// Iterate over the texture to separate the dice's faces.
-		for (var x = 0.0; x < 1; x += 0.5) {
-			var bottom = 2/3
-			for (var i = 0; i < 3; i++) {
-				var face = [
-					new THREE.Vector2(x, bottom),
-					new THREE.Vector2(x, bottom + 1/3),
-					new THREE.Vector2(x + 0.5, bottom + 1/3),
-					new THREE.Vector2(x + 0.5, bottom)
-				];
-
-				this.faces.push(face)
-				bottom -= 1/3;
+		for (let x = 0.0; x < 1; x += 0.5) {
+			for (let bottom = 2/3; bottom >= 0; bottom -= 1/3) {
+				this.faces.push([
+                    new THREE.Vector2(x, bottom),
+                    new THREE.Vector2(x, bottom + 1/3),
+                    new THREE.Vector2(x + 0.5, bottom + 1/3),
+                    new THREE.Vector2(x + 0.5, bottom)
+                ])
 			}
 		}
 
 		// Insert in order.
 		this.geometry.faceVertexUvs[0] = []; 
-		for (i in [3, 2, 4, 1, 5, 0]) {
-			if (this.faces[i]) { var face = this.faces[i] }
-			
-			this.geometry.faceVertexUvs[0].push([face[0], face[1], face[3]])
-			this.geometry.faceVertexUvs[0].push([face[1], face[2], face[3]])
+		for (let i in [3, 2, 4, 1, 5, 0]) {
+			const face = this.faces[i];
+            this.geometry.faceVertexUvs[0].push([face[0], face[1], face[3]]);
+            this.geometry.faceVertexUvs[0].push([face[1], face[2], face[3]]);
 		}
     }
 
     rotate(delta) {
-        if (delta > 0)
-		    dice.rotateOnAxis(this.rotationAxis, delta);
+        if (delta > 0) {
+            this.rotateOnWorldAxis(this.rotationAxis, delta)
+        }
 	}
 }
 
@@ -150,7 +153,7 @@ class Dice extends THREEJSObject {
 	Cameras
 ==============================================================================*/
 
-var camera, pauseCamera;
+var camera, pauseCamera, topCamera;
 
 function createCameras() {
     createOrthographicCamera();
@@ -158,9 +161,6 @@ function createCameras() {
 }
 
 function createOrthographicCamera() {
-	var width = window.innerWidth;
-	var height = window.innerHeight;
-
 	pauseCamera = new THREE.OrthographicCamera(
 		-width / 2, width / 2,
 		height / 2, -height / 2,
@@ -232,13 +232,11 @@ function createPauseHUD() {
     'use strict';
 
     pauseHUD = new THREE.Scene();
-    
-	var textureLoader = new THREE.TextureLoader();
-	textureLoader.load("resources/paused.png", createPauseOverlay);
+	new THREE.TextureLoader().load("resources/paused.png", createPauseOverlay);
 }
 
 function createPauseOverlay(texture) {
-	var material = new THREE.SpriteMaterial( { map: texture } );
+	const material = new THREE.SpriteMaterial( { map: texture } );
 
 	overlay = new THREE.Sprite(material);
 	overlay.position.set(0, 0, 1);
@@ -276,11 +274,10 @@ var width = window.innerWidth, height = window.innerHeight, viewSize = 4/5;
 function onResize() {
     'use strict';
     
-    var oldWidth = width;
-    var oldHeight = height;
+    const oldWidth = width, oldHeight = height;
 
-    var angle = width / height;
-    var windowVector = new THREE.Vector3(0,0,0);
+    const angle = width / height;
+    const windowVector = new THREE.Vector3(0,0,0);
 
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.getSize(windowVector);
@@ -306,15 +303,12 @@ function onResize() {
         camera.updateProjectionMatrix();
     }
 
-    // Updates pause overlay
+    // Updates pause overlay camera
 	pauseCamera.left = - width / 2;
 	pauseCamera.right = width / 2;
 	pauseCamera.top = height / 2;
 	pauseCamera.bottom = - height / 2;
 	pauseCamera.updateProjectionMatrix();
-
-    oldWidth = width;
-    oldHeight = height;
 }
 
 function onKeyDown(e) {
@@ -400,13 +394,13 @@ function reset() {
 }
 
 function toggleWireframe() {
-    for (var i = 0; i < objects.length; i++) {
+    for (let i = 0; i < objects.length; i++) {
         objects[i].toggleWireframe();
     }
 }
 
 function toggleLightning() {
-	for (var i = 0; i < objects.length; i++) {
+	for (let i = 0; i < objects.length; i++) {
         if (!isBasicMaterial)
             objects[i].setBasicMaterial();
         else
@@ -417,9 +411,11 @@ function toggleLightning() {
 }
 
 function toggleDirectionalLight() {
+    let lightTimeout
+    
     if (directionalLight.intensity >= 1 && !switchingDirectionalLights) {
         switchingDirectionalLights = true;
-        var lightTimeout = setInterval(function() {
+        lightTimeout = setInterval(function() {
             directionalLight.intensity -= 0.1;
             if (directionalLight.intensity <= 0) {
                 clearInterval(lightTimeout);
@@ -427,9 +423,10 @@ function toggleDirectionalLight() {
             }
         }, 50);
     }
+    
     else if (!switchingDirectionalLights) {
         switchingDirectionalLights = true;
-        var lightTimeout = setInterval(function() {
+        lightTimeout = setInterval(function() {
             directionalLight.intensity += 0.1;
             if (directionalLight.intensity >= 1) {
                 clearInterval(lightTimeout);
@@ -440,9 +437,11 @@ function toggleDirectionalLight() {
 }
 
 function togglePointLight() {
+    let lightTimeout
+
 	if (pointLight.intensity >= 1 && !switchingPointLights) {
         switchingPointLights = true;
-        var lightTimeout = setInterval(function() {
+        lightTimeout = setInterval(function() {
             pointLight.intensity -= 0.1;
             if (pointLight.intensity <= 0) {
                 clearInterval(lightTimeout);
@@ -450,9 +449,10 @@ function togglePointLight() {
             }
         }, 50);
     }
+
     else if (!switchingPointLights) {
         switchingPointLights = true;
-        var lightTimeout = setInterval(function() {
+        lightTimeout = setInterval(function() {
             pointLight.intensity += 0.1;
             if (pointLight.intensity >= 1) {
                 clearInterval(lightTimeout);
@@ -471,7 +471,7 @@ var scene, pauseHUD, renderer, controls;
 function animate(time) {
     'use strict';
 
-    var delta = (time - timePrev) / 100;
+    const delta = (time - timePrev) / 200;
 
     controls.update();
     update(delta);
