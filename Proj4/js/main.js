@@ -3,6 +3,14 @@
 // Computação Gráfica, Grupo 22 2019-20
 */
 
+/*
+// TODOs
+// Fix pause overlay resize
+// Edit dice texture
+// Reset dice
+// Review delta
+*/
+
 /*==============================================================================
 	Modulation
 ==============================================================================*/
@@ -187,7 +195,6 @@ function createPerspectiveCamera() {
 
 var directionalLight, pointLight;
 
-var toggleDirectionalLights = false, togglePointLights = false;
 var switchingDirectionalLights = false, switchingPointLights = false;
 var directionalLightColor = 0xffffff, pointLightColor = 0xffffff;
 
@@ -211,7 +218,7 @@ function createPointLight() {
 
 var board, dice, overlay;
 
-var toggleMaterials = false, isBasicMaterial = false, toggleWire = false;
+var isBasicMaterial = false;
 var backgroundColor = 0x000000;
 var textureLoader = new THREE.TextureLoader();
 
@@ -232,7 +239,7 @@ function createPauseHUD() {
     'use strict';
 
     pauseHUD = new THREE.Scene();
-	new THREE.TextureLoader().load("resources/paused.png", createPauseOverlay);
+	textureLoader.load("resources/paused.png", createPauseOverlay);
 }
 
 function createPauseOverlay(texture) {
@@ -268,7 +275,9 @@ function createBoard() {
 	Event Listeners
 ==============================================================================*/
 
-var togglePause = false, toggleBallMovement = false, shouldReset = false;
+var togglePause = false, shouldReset = false, toggleWire = false;
+var toggleMaterials = false, toggleBallMovement = false;
+var togglePointLights = false, toggleDirectionalLights = false;
 var width = window.innerWidth, height = window.innerHeight, viewSize = 4/5;
 
 function onResize() {
