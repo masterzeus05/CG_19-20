@@ -161,7 +161,7 @@ class Dice extends THREEJSObject {
 	Cameras
 ==============================================================================*/
 
-var camera, pauseCamera, topCamera;
+var camera, pauseCamera;
 
 function createCameras() {
     createOrthographicCamera();
