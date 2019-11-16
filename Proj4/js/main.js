@@ -275,6 +275,7 @@ class Ball extends THREEJSObject {
         this.velocity = this.initVelocity;
         this.acceleration = 0;
         this.angle = this.initAngle;
+        this.rotation.set(0,0,0);
         this.updatePosition(1);
     }
 }
@@ -527,7 +528,8 @@ function updateWorld(delta) {
 }
 
 function reset() {
-	//TODO
+    //TODO
+    ball.reset();
 }
 
 function toggleWireframe() {
