@@ -159,7 +159,7 @@ class Dice extends THREEJSObject {
 
     rotate(delta) {
         if (delta > 0) {
-            this.rotateOnWorldAxis(this.rotationAxis, delta/200)
+            this.rotateOnWorldAxis(this.rotationAxis, delta / 200)
         }
 	}
 }
