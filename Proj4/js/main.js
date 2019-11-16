@@ -3,8 +3,8 @@
 // Computação Gráfica, Grupo 22 2019-20
 */
 
-/*
-// TODOs
+/* PG
+// TODOs 
 // Fix pause overlay resize
 // Edit dice texture
 // Reset dice
@@ -16,6 +16,7 @@
 ==============================================================================*/
 
 var objects = [];
+var ballInitPos = 0, ballLengthRadius = 40, ballRadius = 5; // Angle, Length of movement and radius
 
 class THREEJSObject extends THREE.Object3D {
     constructor() {
@@ -31,13 +32,16 @@ class THREEJSObject extends THREE.Object3D {
         } );
     }
 
-    createPhongMaterial(texture, bumpMap, color = 0xffffff) {
+    createPhongMaterial(texture, bumpMap = "", color = 0xffffff, shininess = 0, specular = 0x000000) {
         this.phongMaterial = new THREE.MeshPhongMaterial( {
         	color: 0xffffff,
         	side: THREE.DoubleSide,
         	map: texture,
         	bumpMap: bumpMap,
-        	wireframe: false
+            wireframe: false,
+            shininess: shininess,
+            specular: specular,
+            envMap: THREE.envMap
         } );
     }
 
@@ -152,9 +156,128 @@ class Dice extends THREEJSObject {
 
     rotate(delta) {
         if (delta > 0) {
-            this.rotateOnWorldAxis(this.rotationAxis, delta)
+            this.rotateOnWorldAxis(this.rotationAxis, delta / 200)
         }
 	}
+}
+
+class Ball extends THREEJSObject {
+    constructor(initAngle, length, radius) {
+
+        // Prepare mesh parameters
+        super();
+        this.radius = radius;
+        this.geometry = new THREE.SphereGeometry(this.radius, 32, 32, 0);
+        this.texture = new textureLoader.load("resources/lenna.png");
+        this.bumpMap = "";
+
+        // Create material and mesh
+        this.createBasicMaterial(this.texture);
+        this.createPhongMaterial(this.texture, this.bumpMap, 0xffffff, 15, 0x666666);
+        this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
+        this.mesh.rotateZ(0.5)
+
+        // Positionate object and add it
+        this.add(this.mesh);
+        this.position.set(length, this.radius, 0);
+        objects.push(this);
+
+        // Flags, default position, velocity and acceleration
+        this.flags = {'isStarting': false, 'isStopping': false, 'isStopped': true}
+        this.initAngle = initAngle;
+        this.length = length;
+        this.initVelocity = 0; this.maxVelocity = 100;
+        this.posAcce = 2; this.negAcce = -4; 
+
+        // Movement variables
+        this.velocity = this.initVelocity;
+        this.acceleration = 0;
+        this.angle = initAngle;
+    }
+
+    rotate(delta){
+        if (delta>0){ 
+            this.rotateY(delta/200*this.velocity/100);
+        }
+    }
+
+    updatePosition(delta){
+        if (delta<=0 || !delta) return
+
+        // Get delta and velocity
+        delta = delta/200;
+        this.updateVelocity(delta);
+
+        // Get angle
+        this.angle = this.angle + delta * this.velocity;
+        var angle = this.angle/360;
+        if (angle >= Math.PI*2) this.angle = 0;
+
+        // Get position and set it
+        var x = Math.cos(angle) * this.length, z = -Math.sin(angle) * this.length;        
+        this.position.set(x, this.position.y, z);
+    }
+
+    updateVelocity(delta){
+        // Starting movement
+        if ( this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){
+            this.acceleration = this.posAcce;
+            if (this.velocity >= this.maxVelocity) {
+                this.flags.isStarting = false;
+                this.acceleration = 0;
+                this.velocity = this.maxVelocity;
+            }
+        }
+        // Normal movement
+        else if ( !this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){
+            this.acceleration = 0;
+        }
+        // Stopping movement
+        else if ( !this.flags.isStarting && this.flags.isStopping && !this.flags.isStopped ){
+            this.acceleration = this.negAcce;
+            if (this.velocity <= 0) {
+                this.flags.isStopping = false;
+                this.flags.isStopped = true;
+                this.acceleration = 0;
+                this.velocity = 0;
+            }
+        }
+
+        this.velocity += this.acceleration * delta;
+    }
+
+    toggleMovement(){
+        // If stopped, start movement
+        if ( !this.flags.isStarting && !this.flags.isStopping && this.flags.isStopped ){ 
+            this.flags.isStarting = true;
+            this.flags.isStopped = false;
+        }
+        // If normal movement, stop
+        else if ( !this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){ 
+            this.flags.isStopping = true;
+        }
+
+        // Canceling movements - TODO: Check if correct, IMPORTANT
+        // If starting, stop
+        else if ( this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){
+            this.flags.isStarting = false;
+            this.flags.isStopping = true;
+        }
+        // If stopping, start
+        else if ( !this.flags.isStarting && this.flags.isStopping && !this.flags.isStopped ){
+            this.flags.isStarting = true;
+            this.flags.isStopping = false;
+        }
+    }
+
+    reset(){
+        this.flags = {'isStarting': false, 'isStopping': false, 'isStopped': true}
+        this.velocity = this.initVelocity;
+        this.acceleration = 0;
+        this.angle = this.initAngle;
+        this.rotation.set(0,0,0);
+        this.updatePosition(1);
+    }
 }
 
 /*==============================================================================
@@ -215,7 +338,7 @@ function createPointLight() {
 	Scene Creation
 ==============================================================================*/
 
-var board, dice, overlay;
+var board, dice, ball, overlay;
 var textureLoader = new THREE.TextureLoader();
 
 function createScene() {
@@ -252,9 +375,9 @@ function createPauseOverlay(texture) {
 	pauseHUD.add(overlay);
 }
 
-// uses texture
 function createBall() {
-	//TODO
+    ball = new Ball(ballInitPos, ballLengthRadius, ballRadius);
+    scene.add(ball);
 }
 
 function createDice() {
@@ -373,6 +496,9 @@ function updateStatus() {
 
 function updateWorld(delta) {
     dice.rotate(delta);
+    ball.rotate(delta);
+    ball.updatePosition(delta);
+
 
     if (toggleDirectionalLights) {
         toggleDirectionalLights = false;
@@ -393,10 +519,16 @@ function updateWorld(delta) {
         toggleWire = false;
         toggleWireframe();
     }
+
+    if (toggleBallMovement) {
+        toggleBallMovement = false;
+        ball.toggleMovement();
+    }
 }
 
 function reset() {
-	//TODO
+    //TODO
+    ball.reset();
 }
 
 function toggleWireframe() {
@@ -478,7 +610,7 @@ var backgroundColor = 0x000000;
 function animate(time) {
     'use strict';
 
-    const delta = (time - timePrev) / 200;
+    const delta = time - timePrev;
 
     controls.update();
     update(delta);
