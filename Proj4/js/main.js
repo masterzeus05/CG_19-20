@@ -375,7 +375,6 @@ function createPauseOverlay(texture) {
 	pauseHUD.add(overlay);
 }
 
-// uses texture
 function createBall() {
     ball = new Ball(ballInitPos, ballLengthRadius, ballRadius);
     scene.add(ball);
