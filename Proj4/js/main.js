@@ -14,8 +14,6 @@
 /*  DG
 //  TODO:
 //  Add texture
-//  Rotate Ball
-//  Ball's Acceleration and De--
 //  Reset the ball
 */
 
@@ -24,7 +22,7 @@
 ==============================================================================*/
 
 var objects = [];
-var ballInitPos = new THREE.Vector3(25,0,0);
+var ballInitPos = 0, ballLengthRadius = 40, ballRadius = 5; // Angle, Length of movement and radius
 
 class THREEJSObject extends THREE.Object3D {
     constructor() {
@@ -161,18 +159,18 @@ class Dice extends THREEJSObject {
 
     rotate(delta) {
         if (delta > 0) {
-            this.rotateOnWorldAxis(this.rotationAxis, delta)
+            this.rotateOnWorldAxis(this.rotationAxis, delta/200)
         }
 	}
 }
 
 class Ball extends THREEJSObject {
-    constructor(position) {
+    constructor(initAngle, length, radius) {
 
         // Prepare mesh parameters
         super();
-        var radius = 5;
-        this.geometry = new THREE.SphereGeometry(radius, 8,8, 0);
+        this.radius = radius;
+        this.geometry = new THREE.SphereGeometry(this.radius, 8,8, 0);
         this.texture = new textureLoader.load("resources/dice-bumpmap.jpg");
         this.bumpMap = this.texture;
 
@@ -183,27 +181,95 @@ class Ball extends THREEJSObject {
 
         // Positionate object and add it
         this.add(this.mesh);
-        this.position.set(position.x, position.y+radius, position.z);
+        this.position.set(length, this.radius, 0);
         objects.push(this);
 
-        // Flags and increments
-        this.flags = {'isStarting': true, 'isStoping': false, 'isStoped': false}
-        this.currInc = 0
+        // Flags, default position, velocity and acceleration
+        this.flags = {'isStarting': false, 'isStopping': false, 'isStopped': true}
+        this.defaultAngle = initAngle;
+        this.length = length;
+        this.initVelocity = 0; this.maxVelocity = 100;
+        this.posAcce = 2; this.negAcce = -4; 
+
+        // Movement variables
+        this.velocity = this.initVelocity;
+        this.acceleration = 0;
+        this.angle = initAngle;
     }
 
     rotate(delta){
-        if (delta>0 && !this.isStoped) this.rotateY(delta);
+        if (delta>0){ 
+            this.rotateY(delta/200*this.velocity/100);
+        }
     }
 
-    move(delta){
-        // Get delta
-        if (delta<=0 || !delta) return
-        this.currInc += delta
-        if (this.currInc >= 2*Math.PI) this.currInc = 0;
+    updatePosition(delta){
+        if (delta<=0 || !delta || this.flags.isStopped) return
 
+        // Get delta and velocity
+        delta = delta/200;
+        this.updateVelocity(delta);
+
+        // Get angle
+        this.angle = this.angle + delta * this.velocity;
+        var angle = this.angle/360;
+        if (angle >= Math.PI*2) this.angle = 0;
+
+        // Get position and set it
+        var x = Math.cos(angle) * this.length, z = -Math.sin(angle) * this.length;        
+        this.position.set(x, this.position.y, z);
+    }
+
+    updateVelocity(delta){
+        // Starting movement
+        if ( this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){
+            this.acceleration = this.posAcce;
+            if (this.velocity >= this.maxVelocity) {
+                this.flags.isStarting = false;
+                this.acceleration = 0;
+                this.velocity = this.maxVelocity;
+            }
+        }
         // Normal movement
-        var x = Math.cos(this.currInc)*40, z = -Math.sin(this.currInc)*40;
-        this.position.set(x,0,z);
+        else if ( !this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){
+            this.acceleration = 0;
+        }
+        // Stopping movement
+        else if ( !this.flags.isStarting && this.flags.isStopping && !this.flags.isStopped ){
+            this.acceleration = this.negAcce;
+            if (this.velocity <= 0) {
+                this.flags.isStopping = false;
+                this.flags.isStopped = true;
+                this.acceleration = 0;
+                this.velocity = 0;
+            }
+        }
+
+        this.velocity += this.acceleration * delta;
+    }
+
+    toggleMovement(){
+        // If stopped, start movement
+        if ( !this.flags.isStarting && !this.flags.isStopping && this.flags.isStopped ){ 
+            this.flags.isStarting = true;
+            this.flags.isStopped = false;
+        }
+        // If normal movement, stop
+        else if ( !this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){ 
+            this.flags.isStopping = true;
+        }
+
+        // Canceling movements - TODO: Check if correct, IMPORTANT
+        // If starting, stop
+        else if ( this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){
+            this.flags.isStarting = false;
+            this.flags.isStopping = true;
+        }
+        // If stopping, start
+        else if ( !this.flags.isStarting && this.flags.isStopping && !this.flags.isStopped ){
+            this.flags.isStarting = true;
+            this.flags.isStopping = false;
+        }
     }
 }
 
@@ -304,7 +370,7 @@ function createPauseOverlay(texture) {
 
 // uses texture
 function createBall() {
-    ball = new Ball(ballInitPos);
+    ball = new Ball(ballInitPos, ballLengthRadius, ballRadius);
     scene.add(ball);
 }
 
@@ -425,7 +491,7 @@ function updateStatus() {
 function updateWorld(delta) {
     dice.rotate(delta);
     ball.rotate(delta);
-    ball.move(delta);
+    ball.updatePosition(delta);
 
 
     if (toggleDirectionalLights) {
@@ -446,6 +512,11 @@ function updateWorld(delta) {
     if (toggleWire) {
         toggleWire = false;
         toggleWireframe();
+    }
+
+    if (toggleBallMovement) {
+        toggleBallMovement = false;
+        ball.toggleMovement();
     }
 }
 
@@ -532,7 +603,7 @@ var backgroundColor = 0x000000;
 function animate(time) {
     'use strict';
 
-    const delta = (time - timePrev) / 200;
+    const delta = time - timePrev;
 
     controls.update();
     update(delta);
