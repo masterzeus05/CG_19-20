@@ -13,7 +13,6 @@
 
 /*  DG
 //  TODO:
-//  Add ball
 //  Add texture
 //  Rotate Ball
 //  Ball's Acceleration and De--
@@ -25,6 +24,7 @@
 ==============================================================================*/
 
 var objects = [];
+var ballInitPos = new THREE.Vector3(25,0,0);
 
 class THREEJSObject extends THREE.Object3D {
     constructor() {
@@ -166,6 +166,47 @@ class Dice extends THREEJSObject {
 	}
 }
 
+class Ball extends THREEJSObject {
+    constructor(position) {
+
+        // Prepare mesh parameters
+        super();
+        var radius = 5;
+        this.geometry = new THREE.SphereGeometry(radius, 8,8, 0);
+        this.texture = new textureLoader.load("resources/dice-bumpmap.jpg");
+        this.bumpMap = this.texture;
+
+        // Create material and mesh
+        this.createBasicMaterial(this.texture);
+        this.createPhongMaterial(this.texture, this.bumpMap);
+        this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
+
+        // Positionate object and add it
+        this.add(this.mesh);
+        this.position.set(position.x, position.y+radius, position.z);
+        objects.push(this);
+
+        // Flags and increments
+        this.flags = {'isStarting': true, 'isStoping': false, 'isStoped': false}
+        this.currInc = 0
+    }
+
+    rotate(delta){
+        if (delta>0 && !this.isStoped) this.rotateY(delta);
+    }
+
+    move(delta){
+        // Get delta
+        if (delta<=0 || !delta) return
+        this.currInc += delta
+        if (this.currInc >= 2*Math.PI) this.currInc = 0;
+
+        // Normal movement
+        var x = Math.cos(this.currInc)*40, z = -Math.sin(this.currInc)*40;
+        this.position.set(x,0,z);
+    }
+}
+
 /*==============================================================================
 	Cameras
 ==============================================================================*/
@@ -224,7 +265,7 @@ function createPointLight() {
 	Scene Creation
 ==============================================================================*/
 
-var board, dice, overlay;
+var board, dice, ball, overlay;
 var textureLoader = new THREE.TextureLoader();
 
 function createScene() {
@@ -263,7 +304,8 @@ function createPauseOverlay(texture) {
 
 // uses texture
 function createBall() {
-	//TODO
+    ball = new Ball(ballInitPos);
+    scene.add(ball);
 }
 
 function createDice() {
@@ -382,6 +424,9 @@ function updateStatus() {
 
 function updateWorld(delta) {
     dice.rotate(delta);
+    ball.rotate(delta);
+    ball.move(delta);
+
 
     if (toggleDirectionalLights) {
         toggleDirectionalLights = false;
