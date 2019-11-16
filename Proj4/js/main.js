@@ -14,7 +14,6 @@
 /*  DG
 //  TODO:
 //  Add texture
-//  Reset the ball
 */
 
 /*==============================================================================
@@ -186,7 +185,7 @@ class Ball extends THREEJSObject {
 
         // Flags, default position, velocity and acceleration
         this.flags = {'isStarting': false, 'isStopping': false, 'isStopped': true}
-        this.defaultAngle = initAngle;
+        this.initAngle = initAngle;
         this.length = length;
         this.initVelocity = 0; this.maxVelocity = 100;
         this.posAcce = 2; this.negAcce = -4; 
@@ -204,7 +203,7 @@ class Ball extends THREEJSObject {
     }
 
     updatePosition(delta){
-        if (delta<=0 || !delta || this.flags.isStopped) return
+        if (delta<=0 || !delta) return
 
         // Get delta and velocity
         delta = delta/200;
@@ -270,6 +269,14 @@ class Ball extends THREEJSObject {
             this.flags.isStarting = true;
             this.flags.isStopping = false;
         }
+    }
+
+    reset(){
+        this.flags = {'isStarting': false, 'isStopping': false, 'isStopped': true}
+        this.velocity = this.initVelocity;
+        this.acceleration = 0;
+        this.angle = this.initAngle;
+        this.updatePosition(1);
     }
 }
 
