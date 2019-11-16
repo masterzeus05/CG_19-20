@@ -161,7 +161,7 @@ class Dice extends THREEJSObject {
 
     rotate(delta) {
         if (delta > 0) {
-            this.rotateOnWorldAxis(this.rotationAxis, delta)
+            this.rotateOnWorldAxis(this.rotationAxis, delta / 200)
         }
 	}
 }
@@ -192,7 +192,7 @@ class Ball extends THREEJSObject {
     }
 
     rotate(delta){
-        if (delta>0 && !this.isStoped) this.rotateY(delta);
+        if (delta>0 && !this.isStoped) this.rotateY(delta / 200);
     }
 
     move(delta){
@@ -532,7 +532,7 @@ var backgroundColor = 0x000000;
 function animate(time) {
     'use strict';
 
-    const delta = (time - timePrev) / 200;
+    const delta = time - timePrev;
 
     controls.update();
     update(delta);
