@@ -11,11 +11,6 @@
 // Review delta
 */
 
-/*  DG
-//  TODO:
-//  Add texture
-*/
-
 /*==============================================================================
 	Modulation
 ==============================================================================*/
@@ -37,13 +32,16 @@ class THREEJSObject extends THREE.Object3D {
         } );
     }
 
-    createPhongMaterial(texture, bumpMap, color = 0xffffff) {
+    createPhongMaterial(texture, bumpMap = "", color = 0xffffff, shininess = 0, specular = 0x000000) {
         this.phongMaterial = new THREE.MeshPhongMaterial( {
         	color: 0xffffff,
         	side: THREE.DoubleSide,
         	map: texture,
         	bumpMap: bumpMap,
-        	wireframe: false
+            wireframe: false,
+            shininess: shininess,
+            specular: specular,
+            envMap: THREE.envMap
         } );
     }
 
@@ -169,14 +167,15 @@ class Ball extends THREEJSObject {
         // Prepare mesh parameters
         super();
         this.radius = radius;
-        this.geometry = new THREE.SphereGeometry(this.radius, 8,8, 0);
-        this.texture = new textureLoader.load("resources/dice-bumpmap.jpg");
-        this.bumpMap = this.texture;
+        this.geometry = new THREE.SphereGeometry(this.radius, 32, 32, 0);
+        this.texture = new textureLoader.load("resources/lenna.png");
+        this.bumpMap = "";
 
         // Create material and mesh
         this.createBasicMaterial(this.texture);
-        this.createPhongMaterial(this.texture, this.bumpMap);
+        this.createPhongMaterial(this.texture, this.bumpMap, 0xffffff, 15, 0x666666);
         this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
+        this.mesh.rotateZ(0.5)
 
         // Positionate object and add it
         this.add(this.mesh);
