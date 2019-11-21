@@ -34,7 +34,7 @@ class THREEJSObject extends THREE.Object3D {
     	shininess = 0, specular = 0x000000) {
         
         this.phongMaterial = new THREE.MeshPhongMaterial( {
-        	color: 0xffffff,
+        	color: color,
         	side: THREE.DoubleSide,
         	map: texture,
         	bumpMap: bumpMap,
@@ -45,7 +45,7 @@ class THREEJSObject extends THREE.Object3D {
         } );
     }
 
-    createLambertMaterial(color = 0xffffff, texture, bumpMap) {
+    createLambertMaterial(color = 0xffffff, texture, bumpMap = "") {
         this.lambertMaterial = new THREE.MeshLambertMaterial( {
         	color: color,
         	side: THREE.DoubleSide,
