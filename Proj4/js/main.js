@@ -4,11 +4,8 @@
 */
 
 /* PG
-// TODOs 
-// Fix pause overlay resize
+// TODOs
 // Edit dice texture
-// Reset dice
-// Review delta
 */
 
 /*==============================================================================
@@ -111,7 +108,11 @@ class Dice extends THREEJSObject {
         this.geometry = new THREE.CubeGeometry(10, 10, 10);
         this.texture = new textureLoader.load("resources/dice-bumpmap.jpg");
         this.bumpMap = this.texture;
-        this.rotationAxis = new THREE.Vector3(0, 1, 0)
+        this.rotationAxis = new THREE.Vector3(0, 1, 0);
+        // Note: expensive operations turned into const
+        // Angle (radian) for second rotation given by:
+        // THREE.Math.degToRad(Math.atan(1 / Math.sqrt(2)) * 180 / Math.PI)
+        this.initRotZ = 0.6154797086703874;
 
         this.faces = []
 		this.mapTextures()
@@ -120,12 +121,8 @@ class Dice extends THREEJSObject {
         this.createPhongMaterial(this.texture, this.bumpMap);
         this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
 
-        // Note: expensive operations turned into const
-        // Angle (radian) for second rotation given by:
-        // THREE.Math.degToRad(Math.atan(1 / Math.sqrt(2)) * 180 / Math.PI)
-        const rotZ = 0.6154797086703874;    
-        this.mesh.rotateX(Math.PI / 4);
-        this.rotateZ(rotZ)
+        this.mesh.rotation.set(Math.PI / 4, 0, 0);
+        this.rotation.set(0, 0, this.initRotZ);
         this.add(this.mesh);
         
         // Distance d between dice cornes given by:
@@ -161,6 +158,15 @@ class Dice extends THREEJSObject {
         if (delta > 0) {
             this.rotateOnWorldAxis(this.rotationAxis, delta / 200)
         }
+	}
+
+	reset() {
+		// Note: expensive operations turned into const
+        // Angle (radian) for second rotation given by:
+        // THREE.Math.degToRad(Math.atan(1 / Math.sqrt(2)) * 180 / Math.PI)
+        const rotZ = 0.6154797086703874;
+        this.mesh.rotation.set(Math.PI / 4,0,0);
+        this.rotation.set(0, 0, this.initRotZ);
 	}
 }
 
@@ -569,7 +575,9 @@ function updateWorld(delta) {
 }
 
 function reset() {
-    //TODO
+	if (!isPaused) return;
+
+    dice.reset();
     ball.reset();
 }
 
@@ -673,8 +681,8 @@ function render() {
     renderer.shadowMap.type = THREE.BasicShadowMap;
 
     if (isPaused) {
-    	renderer.clearDepth();
-    	renderer.render(pauseHUD, pauseCamera);
+    	//renderer.clearDepth();
+    	//renderer.render(pauseHUD, pauseCamera);
     }
 }
 
