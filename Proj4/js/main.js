@@ -16,7 +16,8 @@
 ==============================================================================*/
 
 var objects = [];
-var ballInitPos = 0, ballLengthRadius = 40, ballRadius = 5; // Angle, Length of movement and radius
+// Angle, Length of movement and radius
+var ballInitPos = 0, ballLengthRadius = 40, ballRadius = 5;
 
 class THREEJSObject extends THREE.Object3D {
     constructor() {
@@ -32,7 +33,9 @@ class THREEJSObject extends THREE.Object3D {
         } );
     }
 
-    createPhongMaterial(texture, bumpMap = "", color = 0xffffff, shininess = 0, specular = 0x000000) {
+    createPhongMaterial(texture, bumpMap = "", color = 0xffffff, 
+    	shininess = 0, specular = 0x000000) {
+        
         this.phongMaterial = new THREE.MeshPhongMaterial( {
         	color: 0xffffff,
         	side: THREE.DoubleSide,
@@ -82,7 +85,7 @@ class THREEJSObject extends THREE.Object3D {
     toggleWireframe() {
         this.basicMaterial.wireframe = !this.basicMaterial.wireframe;
         this.phongMaterial.wireframe = !this.phongMaterial.wireframe;
-        //this.lambertMaterial.wireframe = !this.lambertMaterial.wireframe;
+        this.lambertMaterial.wireframe = !this.lambertMaterial.wireframe;
     }
 }
 
@@ -91,7 +94,7 @@ class Board extends THREEJSObject {
         super();
         this.texture = new textureLoader.load("resources/chess_texture.jpg");
         this.bumpMap = new textureLoader.load("resources/wood_bump_map.jpg");
-        this.geometry = new THREE.PlaneGeometry(100 , 100, 10, 10);
+        this.geometry = new THREE.BoxGeometry(100, 100, 3, 10, 10);
         this.createBasicMaterial(this.texture);
         this.createPhongMaterial(this.texture, this.bumpMap);
         this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
@@ -127,7 +130,7 @@ class Dice extends THREEJSObject {
         
         // Distance d between dice cornes given by:
         // 10 * Math.sqrt(3)
-        const height = 17.32050807568877;
+        const height = 17.32050807568877 + 3;
         this.position.set(0, height / 2, 0);
         objects.push(this);
     }
@@ -179,7 +182,7 @@ class Ball extends THREEJSObject {
 
         // Positionate object and add it
         this.add(this.mesh);
-        this.position.set(length, this.radius, 0);
+        this.position.set(length, this.radius + 1.5, 0);
         objects.push(this);
 
         // Flags, default position, velocity and acceleration
@@ -195,14 +198,14 @@ class Ball extends THREEJSObject {
         this.angle = initAngle;
     }
 
-    rotate(delta){
-        if (delta>0){ 
-            this.rotateY(delta/200*this.velocity/100);
+    rotate(delta) {
+        if (delta > 0) { 
+            this.rotateY(delta / 200 * this.velocity / 100);
         }
     }
 
-    updatePosition(delta){
-        if (delta<=0 || !delta) return
+    updatePosition(delta) {
+        if (delta <= 0 || !delta) return
 
         // Get delta and velocity
         delta = delta/200;
@@ -218,9 +221,12 @@ class Ball extends THREEJSObject {
         this.position.set(x, this.position.y, z);
     }
 
-    updateVelocity(delta){
+    updateVelocity(delta) {
         // Starting movement
-        if ( this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){
+        if (this.flags.isStarting
+        	&& !this.flags.isStopping
+        	&& !this.flags.isStopped) {
+
             this.acceleration = this.posAcce;
             if (this.velocity >= this.maxVelocity) {
                 this.flags.isStarting = false;
@@ -228,12 +234,20 @@ class Ball extends THREEJSObject {
                 this.velocity = this.maxVelocity;
             }
         }
+
         // Normal movement
-        else if ( !this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){
+        else if (!this.flags.isStarting
+        	&& !this.flags.isStopping
+        	&& !this.flags.isStopped) {
+
             this.acceleration = 0;
         }
+
         // Stopping movement
-        else if ( !this.flags.isStarting && this.flags.isStopping && !this.flags.isStopped ){
+        else if (!this.flags.isStarting
+        	&& this.flags.isStopping
+        	&& !this.flags.isStopped) {
+
             this.acceleration = this.negAcce;
             if (this.velocity <= 0) {
                 this.flags.isStopping = false;
@@ -246,31 +260,45 @@ class Ball extends THREEJSObject {
         this.velocity += this.acceleration * delta;
     }
 
-    toggleMovement(){
+    toggleMovement() {
         // If stopped, start movement
-        if ( !this.flags.isStarting && !this.flags.isStopping && this.flags.isStopped ){ 
+        if (!this.flags.isStarting
+        	&& !this.flags.isStopping
+        	&& this.flags.isStopped ) {
+
             this.flags.isStarting = true;
             this.flags.isStopped = false;
         }
+
         // If normal movement, stop
-        else if ( !this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){ 
+        else if (!this.flags.isStarting
+        	&& !this.flags.isStopping
+        	&& !this.flags.isStopped) {
+
             this.flags.isStopping = true;
         }
 
         // Canceling movements - TODO: Check if correct, IMPORTANT
         // If starting, stop
-        else if ( this.flags.isStarting && !this.flags.isStopping && !this.flags.isStopped ){
+        else if (this.flags.isStarting
+        	&& !this.flags.isStopping
+        	&& !this.flags.isStopped) {
+
             this.flags.isStarting = false;
             this.flags.isStopping = true;
         }
+
         // If stopping, start
-        else if ( !this.flags.isStarting && this.flags.isStopping && !this.flags.isStopped ){
+        else if (!this.flags.isStarting
+        	&& this.flags.isStopping
+        	&& !this.flags.isStopped) {
+
             this.flags.isStarting = true;
             this.flags.isStopping = false;
         }
     }
 
-    reset(){
+    reset() {
         this.flags = {'isStarting': false, 'isStopping': false, 'isStopped': true}
         this.velocity = this.initVelocity;
         this.acceleration = 0;
@@ -338,7 +366,7 @@ function createPointLight() {
 	Scene Creation
 ==============================================================================*/
 
-var board, dice, ball, overlay;
+var board, dice, ball, overlay, overlayRatio = 2;
 var textureLoader = new THREE.TextureLoader();
 
 function createScene() {
@@ -363,9 +391,13 @@ function createPauseHUD() {
 
 function createPauseOverlay(texture) {
 	const material = new THREE.SpriteMaterial( { map: texture } );
-
+	const width = window.innerWidth * 0.6;
+	const height = width / overlayRatio;
+	
 	overlay = new THREE.Sprite(material);
 	overlay.position.set(0, 0, 1);
+	overlay.material.map.image.width = width;
+	overlay.material.map.image.height = height;
 	overlay.scale.set(
 		material.map.image.width,
 		material.map.image.height,
@@ -402,9 +434,8 @@ var width = window.innerWidth, height = window.innerHeight, viewSize = 4/5;
 function onResize() {
     'use strict';
     
-    const oldWidth = width, oldHeight = height;
-
     const angle = width / height;
+    const oldWidth = width, oldHeight = height;
     const windowVector = new THREE.Vector3(0,0,0);
 
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -430,13 +461,24 @@ function onResize() {
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
     }
-
+   
     // Updates pause overlay camera
 	pauseCamera.left = - width / 2;
 	pauseCamera.right = width / 2;
 	pauseCamera.top = height / 2;
 	pauseCamera.bottom = - height / 2;
 	pauseCamera.updateProjectionMatrix();
+
+	// Updates pause overlay texture
+	const material = overlay.material;
+	material.map.image.width = width * 0.6;
+	material.map.image.height = material.map.image.width / overlayRatio;
+
+	overlay.scale.set(
+		material.map.image.width,
+		material.map.image.height,
+		1
+	);
 }
 
 function onKeyDown(e) {
