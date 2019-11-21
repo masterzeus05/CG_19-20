@@ -82,7 +82,7 @@ class THREEJSObject extends THREE.Object3D {
     toggleWireframe() {
         this.basicMaterial.wireframe = !this.basicMaterial.wireframe;
         this.phongMaterial.wireframe = !this.phongMaterial.wireframe;
-        this.lambertMaterial.wireframe = !this.lambertMaterial.wireframe;
+        //this.lambertMaterial.wireframe = !this.lambertMaterial.wireframe;
     }
 }
 
