@@ -40,26 +40,12 @@ class THREEJSObject extends THREE.Object3D {
         } );
     }
 
-    createLambertMaterial(color = 0xffffff, texture, bumpMap = "") {
-        this.lambertMaterial = new THREE.MeshLambertMaterial( {
-        	color: color,
-        	side: THREE.DoubleSide,
-        	map: texture,
-        	bumpMap: bumpMap,
-        	wireframe: false
-        } );
-    }
-
     setBasicMaterial() {
         this.mesh.material = this.basicMaterial;
     }
 
     setPhongMaterial() {
         this.mesh.material = this.phongMaterial;
-    }
-
-    setLambertMaterial() {
-        this.mesh.material = this.lambertMaterial;
     }
 
     getBasicMaterial() {
@@ -70,14 +56,9 @@ class THREEJSObject extends THREE.Object3D {
         return this.phongMaterial;
     }
 
-    getLambertMaterial() {
-        return this.lambertMaterial;
-    }
-
     toggleWireframe() {
         this.basicMaterial.wireframe = !this.basicMaterial.wireframe;
         this.phongMaterial.wireframe = !this.phongMaterial.wireframe;
-        //this.lambertMaterial.wireframe = !this.lambertMaterial.wireframe;
     }
 }
 
@@ -93,6 +74,31 @@ class Board extends THREEJSObject {
         this.mesh.rotateX( - Math.PI / 2);
         this.add(this.mesh);
         this.position.set(0, 0, 0);
+        objects.push(this);
+        this.createFrame();
+    }
+
+    createFrame() {
+        var frame1 = new Frame(100, 4, 0, 0.5, 51.5, 0);
+        var frame2 = new Frame(100, 4, 0, 0.5, -51.5, 0);
+        var frame3 = new Frame(106, 4, 51.5, 0.5, 0, Math.PI / 2);
+        var frame4 = new Frame(106, 4, -51.5, 0.5, 0, Math.PI / 2);
+        scene.add(frame1, frame2, frame3, frame4);
+    }
+}
+
+class Frame extends THREEJSObject {
+    constructor(width, height, x, y, z, rot) {
+        super();
+        this.texture = new textureLoader.load("resources/brown.jpg");
+        this.bumpMap = new textureLoader.load("resources/wood_bump_map.jpg");
+        this.geometry = new THREE.BoxGeometry(width, height, 3, 10, 10);
+        this.createBasicMaterial(this.texture);
+        this.createPhongMaterial(this.texture, this.bumpMap);
+        this.mesh = new THREE.Mesh(this.geometry, this.getPhongMaterial());
+        this.add(this.mesh);
+        this.mesh.rotateY(rot);
+        this.position.set(x, y, z);
         objects.push(this);
     }
 }
