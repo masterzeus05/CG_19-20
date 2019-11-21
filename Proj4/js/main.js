@@ -681,8 +681,8 @@ function render() {
     renderer.shadowMap.type = THREE.BasicShadowMap;
 
     if (isPaused) {
-    	//renderer.clearDepth();
-    	//renderer.render(pauseHUD, pauseCamera);
+    	renderer.clearDepth();
+    	renderer.render(pauseHUD, pauseCamera);
     }
 }
 
