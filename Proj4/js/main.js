@@ -9,7 +9,7 @@
 
 var objects = [];
 // Angle, Length of movement and radius
-var ballInitPos = 0, ballLengthRadius = 40, ballRadius = 5;
+var ballInitPos = 0, ballLengthRadius = 31, ballRadius = 5;
 
 class THREEJSObject extends THREE.Object3D {
     constructor() {
