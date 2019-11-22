@@ -9,7 +9,7 @@
 
 var objects = [];
 // Angle, Length of movement and radius
-var ballInitPos = 0, ballLengthRadius = 40, ballRadius = 5;
+var ballInitPos = 0, ballLengthRadius = 31, ballRadius = 5;
 
 class THREEJSObject extends THREE.Object3D {
     constructor() {
@@ -79,11 +79,12 @@ class Board extends THREEJSObject {
     }
 
     createFrame() {
-        var frame1 = new Frame(100, 4, 0, 0.5, 51.5, 0);
-        var frame2 = new Frame(100, 4, 0, 0.5, -51.5, 0);
-        var frame3 = new Frame(106, 4, 51.5, 0.5, 0, Math.PI / 2);
-        var frame4 = new Frame(106, 4, -51.5, 0.5, 0, Math.PI / 2);
-        scene.add(frame1, frame2, frame3, frame4);
+        scene.add(
+            new Frame(100, 4, 0, 0.5, 51.5, 0),
+            new Frame(100, 4, 0, 0.5, -51.5, 0),
+            new Frame(106, 4, 51.5, 0.5, 0, Math.PI / 2),
+            new Frame(106, 4, -51.5, 0.5, 0, Math.PI / 2)
+        );        
     }
 }
 
@@ -162,10 +163,6 @@ class Dice extends THREEJSObject {
 	}
 
 	reset() {
-		// Note: expensive operations turned into const
-        // Angle (radian) for second rotation given by:
-        // THREE.Math.degToRad(Math.atan(1 / Math.sqrt(2)) * 180 / Math.PI)
-        const rotZ = 0.6154797086703874;
         this.mesh.rotation.set(Math.PI / 4,0,0);
         this.rotation.set(0, 0, this.initRotZ);
 	}
@@ -220,11 +217,11 @@ class Ball extends THREEJSObject {
 
         // Get angle
         this.angle = this.angle + delta * this.velocity;
-        var angle = this.angle/360;
+        const angle = this.angle / 360;
         if (angle >= Math.PI*2) this.angle = 0;
 
         // Get position and set it
-        var x = Math.cos(angle) * this.length, z = -Math.sin(angle) * this.length;        
+        const x = Math.cos(angle) * this.length, z = -Math.sin(angle) * this.length;        
         this.position.set(x, this.position.y, z);
     }
 
